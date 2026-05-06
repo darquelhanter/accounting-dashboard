@@ -4,11 +4,21 @@ import { Button } from "@/components/ui/button";
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import { Users, DollarSign, CheckCircle, AlertCircle, Clock, TrendingUp, Upload, X } from "lucide-react";
 import ExcelUpload from "@/components/ExcelUpload";
+import AdvancedFilters, { FilterState } from "@/components/AdvancedFilters";
 import { DashboardData } from "@/hooks/useExcelParser";
+import { useFilteredData, useFilteredStats } from "@/hooks/useFilteredData";
 
 export default function Dashboard() {
   const [showUpload, setShowUpload] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [filters, setFilters] = useState<FilterState>({
+    clientes: [],
+    statusObrigacoes: [],
+    periodo: { inicio: '', fim: '' }
+  });
+
+  const filteredData = useFilteredData(dashboardData, filters);
+  const filteredStats = useFilteredStats(filteredData);
 
   // Dados padrão (exemplo)
   const defaultKpis = [
@@ -45,6 +55,45 @@ export default function Dashboard() {
       iconColor: "text-red-600"
     }
   ];
+
+  // Gerar KPIs com base nos dados filtrados
+  const generateFilteredKpis = () => {
+    if (!filteredData) return defaultKpis;
+    return [
+      {
+        title: "Total de Clientes",
+        value: filteredStats.totalClientes.toString(),
+        subtitle: `${filteredStats.totalClientes} selecionados`,
+        icon: Users,
+        color: "bg-blue-50",
+        iconColor: "text-blue-600"
+      },
+      {
+        title: "Receita Total",
+        value: `R$ ${filteredStats.receitaTotal.toLocaleString('pt-BR')}`,
+        subtitle: "Período selecionado",
+        icon: DollarSign,
+        color: "bg-green-50",
+        iconColor: "text-green-600"
+      },
+      {
+        title: "Vencimento Dia 10",
+        value: filteredStats.vencimento10.toString(),
+        subtitle: "cliente(s)",
+        icon: CheckCircle,
+        color: "bg-amber-50",
+        iconColor: "text-amber-600"
+      },
+      {
+        title: "Vencimento Dia 20",
+        value: filteredStats.vencimento20.toString(),
+        subtitle: "cliente(s)",
+        icon: AlertCircle,
+        color: "bg-red-50",
+        iconColor: "text-red-600"
+      }
+    ];
+  };
 
   const defaultStatusRecebimento = [
     { name: "Pago", value: 4, fill: "#10b981" },
@@ -139,8 +188,8 @@ export default function Dashboard() {
     ];
   };
 
-  const kpis = dashboardData ? calculateKpis(dashboardData) : defaultKpis;
-  const statusObrigacoes = dashboardData ? calculateStatusObrigacoes(dashboardData) : defaultStatusObrigacoes;
+  const kpis = filteredData ? generateFilteredKpis() : defaultKpis;
+  const statusObrigacoes = filteredData ? filteredStats.statusObrigacoes : defaultStatusObrigacoes;
 
   const handleDataLoaded = (data: DashboardData) => {
     setDashboardData(data);
@@ -150,28 +199,33 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header com botão de upload */}
+        {/* Header com botão de upload e filtros */}
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard Contábil</h1>
             <p className="text-slate-600">Gestão financeira e operacional do seu escritório</p>
           </div>
-          <Button
-            onClick={() => setShowUpload(!showUpload)}
-            className="gap-2 bg-blue-600 hover:bg-blue-700"
-          >
-            {showUpload ? (
-              <>
-                <X className="w-4 h-4" />
-                Fechar
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                Carregar Planilha
-              </>
+          <div className="flex gap-3">
+            {dashboardData && (
+              <AdvancedFilters data={dashboardData} onFilterChange={setFilters} />
             )}
-          </Button>
+            <Button
+              onClick={() => setShowUpload(!showUpload)}
+              className="gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              {showUpload ? (
+                <>
+                  <X className="w-4 h-4" />
+                  Fechar
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  Carregar Planilha
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Modal de Upload */}
@@ -198,16 +252,31 @@ export default function Dashboard() {
                 <div>
                   <p className="font-semibold text-green-900">Dados carregados com sucesso!</p>
                   <p className="text-sm text-green-700">{dashboardData.clientes.length} clientes, {dashboardData.obrigacoes.length} obrigações</p>
+                  {Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : Object.values(f).some(v => v)) && (
+                    <p className="text-xs text-green-600 mt-1">Filtros aplicados</p>
+                  )}
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDashboardData(null)}
-                className="text-green-700 border-green-300 hover:bg-green-100"
-              >
-                Limpar
-              </Button>
+              <div className="flex gap-2">
+                {Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : Object.values(f).some(v => v)) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFilters({ clientes: [], statusObrigacoes: [], periodo: { inicio: '', fim: '' } })}
+                    className="text-green-700 border-green-300 hover:bg-green-100"
+                  >
+                    Limpar Filtros
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDashboardData(null)}
+                  className="text-green-700 border-green-300 hover:bg-green-100"
+                >
+                  Limpar Dados
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -244,7 +313,7 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={defaultStatusRecebimento}
+                    data={filteredData ? filteredStats.statusRecebimento : defaultStatusRecebimento}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -253,7 +322,7 @@ export default function Dashboard() {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {defaultStatusRecebimento.map((entry, index) => (
+                    {(filteredData ? filteredStats.statusRecebimento : defaultStatusRecebimento).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
