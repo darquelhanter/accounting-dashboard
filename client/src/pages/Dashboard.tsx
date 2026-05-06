@@ -1,10 +1,17 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
-import { Users, DollarSign, CheckCircle, AlertCircle, Clock, TrendingUp } from "lucide-react";
+import { Users, DollarSign, CheckCircle, AlertCircle, Clock, TrendingUp, Upload, X } from "lucide-react";
+import ExcelUpload from "@/components/ExcelUpload";
+import { DashboardData } from "@/hooks/useExcelParser";
 
 export default function Dashboard() {
-  // Dados simulados baseados na planilha
-  const kpis = [
+  const [showUpload, setShowUpload] = useState(false);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+
+  // Dados padrão (exemplo)
+  const defaultKpis = [
     {
       title: "Total de Clientes",
       value: "8",
@@ -39,15 +46,13 @@ export default function Dashboard() {
     }
   ];
 
-  // Dados de status de recebimento
-  const statusRecebimento = [
+  const defaultStatusRecebimento = [
     { name: "Pago", value: 4, fill: "#10b981" },
     { name: "Pendente", value: 2, fill: "#f59e0b" },
     { name: "Atrasado", value: 0, fill: "#ef4444" }
   ];
 
-  // Dados de evolução de receita
-  const evolucaoReceita = [
+  const defaultEvolucaoReceita = [
     { mes: "Jan", recebido: 4500, previsto: 4500 },
     { mes: "Fev", recebido: 3200, previsto: 4500 },
     { mes: "Mar", recebido: 3800, previsto: 4500 },
@@ -56,30 +61,156 @@ export default function Dashboard() {
     { mes: "Jun", recebido: 4500, previsto: 4500 }
   ];
 
-  // Dados de status de obrigações
-  const statusObrigacoes = [
+  const defaultStatusObrigacoes = [
     { status: "Feito", quantidade: 12, fill: "#10b981" },
     { status: "Pendente", quantidade: 5, fill: "#f59e0b" },
     { status: "Em Progresso", quantidade: 2, fill: "#3b82f6" },
     { status: "Bloqueado", quantidade: 1, fill: "#ef4444" }
   ];
 
-  // Dados por setor
-  const dadosSetor = [
+  const defaultDadosSetor = [
     { setor: "Fiscal", clientes: 4, obrigacoes: 8 },
     { setor: "Trabalhista", clientes: 2, obrigacoes: 4 },
     { setor: "Contábil", clientes: 3, obrigacoes: 6 },
     { setor: "Geral", clientes: 1, obrigacoes: 2 }
   ];
 
+  // Calcular KPIs a partir dos dados carregados
+  const calculateKpis = (data: DashboardData) => {
+    const clientesAtivos = data.clientes.filter(c => c.status === 'Ativo');
+    const receitaTotal = clientesAtivos.reduce((sum, c) => sum + c.valor, 0);
+    const vencimento10 = clientesAtivos.filter(c => c.vencimento === 10).length;
+    const vencimento20 = clientesAtivos.filter(c => c.vencimento === 20).length;
+
+    return [
+      {
+        title: "Total de Clientes",
+        value: data.clientes.length.toString(),
+        subtitle: `${clientesAtivos.length} ativos`,
+        icon: Users,
+        color: "bg-blue-50",
+        iconColor: "text-blue-600"
+      },
+      {
+        title: "Receita Total",
+        value: `R$ ${receitaTotal.toLocaleString('pt-BR')}`,
+        subtitle: "Mensal",
+        icon: DollarSign,
+        color: "bg-green-50",
+        iconColor: "text-green-600"
+      },
+      {
+        title: "Vencimento Dia 10",
+        value: vencimento10.toString(),
+        subtitle: "cliente(s)",
+        icon: CheckCircle,
+        color: "bg-amber-50",
+        iconColor: "text-amber-600"
+      },
+      {
+        title: "Vencimento Dia 20",
+        value: vencimento20.toString(),
+        subtitle: "cliente(s)",
+        icon: AlertCircle,
+        color: "bg-red-50",
+        iconColor: "text-red-600"
+      }
+    ];
+  };
+
+  // Calcular status de obrigações
+  const calculateStatusObrigacoes = (data: DashboardData) => {
+    let feito = 0, pendente = 0, emProgresso = 0, bloqueado = 0;
+
+    data.checklist.forEach(item => {
+      Object.values(item.meses).forEach(status => {
+        if (status === 'Feito') feito++;
+        else if (status === 'Pendente') pendente++;
+        else if (status === 'Em Progresso') emProgresso++;
+        else if (status === 'Bloqueado') bloqueado++;
+      });
+    });
+
+    return [
+      { status: "Feito", quantidade: feito, fill: "#10b981" },
+      { status: "Pendente", quantidade: pendente, fill: "#f59e0b" },
+      { status: "Em Progresso", quantidade: emProgresso, fill: "#3b82f6" },
+      { status: "Bloqueado", quantidade: bloqueado, fill: "#ef4444" }
+    ];
+  };
+
+  const kpis = dashboardData ? calculateKpis(dashboardData) : defaultKpis;
+  const statusObrigacoes = dashboardData ? calculateStatusObrigacoes(dashboardData) : defaultStatusObrigacoes;
+
+  const handleDataLoaded = (data: DashboardData) => {
+    setDashboardData(data);
+    setShowUpload(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard Contábil</h1>
-          <p className="text-slate-600">Gestão financeira e operacional do seu escritório</p>
+        {/* Header com botão de upload */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard Contábil</h1>
+            <p className="text-slate-600">Gestão financeira e operacional do seu escritório</p>
+          </div>
+          <Button
+            onClick={() => setShowUpload(!showUpload)}
+            className="gap-2 bg-blue-600 hover:bg-blue-700"
+          >
+            {showUpload ? (
+              <>
+                <X className="w-4 h-4" />
+                Fechar
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Carregar Planilha
+              </>
+            )}
+          </Button>
         </div>
+
+        {/* Modal de Upload */}
+        {showUpload && (
+          <Card className="mb-8 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="text-blue-900">Carregar Dados da Planilha</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ExcelUpload onDataLoaded={handleDataLoaded} />
+              <p className="text-xs text-slate-600 mt-4 text-center">
+                Selecione o arquivo Excel com as abas: Cadastro Clientes, Obrigações, Checklist Obrigações e Controle Mensalidades
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Status de dados carregados */}
+        {dashboardData && (
+          <Card className="mb-8 border-green-200 bg-green-50">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+                <div>
+                  <p className="font-semibold text-green-900">Dados carregados com sucesso!</p>
+                  <p className="text-sm text-green-700">{dashboardData.clientes.length} clientes, {dashboardData.obrigacoes.length} obrigações</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDashboardData(null)}
+                className="text-green-700 border-green-300 hover:bg-green-100"
+              >
+                Limpar
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -113,7 +244,7 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={statusRecebimento}
+                    data={defaultStatusRecebimento}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -122,7 +253,7 @@ export default function Dashboard() {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {statusRecebimento.map((entry, index) => (
+                    {defaultStatusRecebimento.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
@@ -139,7 +270,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={evolucaoReceita}>
+                <LineChart data={defaultEvolucaoReceita}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="mes" stroke="#64748b" />
                   <YAxis stroke="#64748b" />
@@ -188,7 +319,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dadosSetor}>
+                <BarChart data={defaultDadosSetor}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="setor" stroke="#64748b" />
                   <YAxis stroke="#64748b" />
