@@ -1,45 +1,79 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
-import { Users, DollarSign, CheckCircle, AlertCircle } from "lucide-react";
-
-// Dados de exemplo baseados na planilha
-const clientesData = [
-  { name: "novo1", status: "Pago", valor: 300, vencimento: 20 }
-];
-
-const statusFinanceiro = [
-  { name: "Pago", value: 1, fill: "#10b981" },
-  { name: "Pendente", value: 0, fill: "#f59e0b" },
-  { name: "Atrasado", value: 0, fill: "#ef4444" }
-];
-
-const receitaMensal = [
-  { mes: "Jan", recebido: 300, previsto: 300 },
-  { mes: "Fev", recebido: 0, previsto: 300 },
-  { mes: "Mar", recebido: 0, previsto: 300 },
-  { mes: "Abr", recebido: 0, previsto: 300 },
-  { mes: "Mai", recebido: 0, previsto: 300 },
-  { mes: "Jun", recebido: 0, previsto: 300 }
-];
-
-const obrigacoesPorMes = [
-  { mes: "Jan", feito: 1, pendente: 0 },
-  { mes: "Fev", feito: 0, pendente: 1 },
-  { mes: "Mar", feito: 0, pendente: 1 },
-  { mes: "Abr", feito: 0, pendente: 1 },
-  { mes: "Mai", feito: 0, pendente: 1 },
-  { mes: "Jun", feito: 0, pendente: 1 }
-];
+import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
+import { Users, DollarSign, CheckCircle, AlertCircle, Clock, TrendingUp } from "lucide-react";
 
 export default function Dashboard() {
-  const totalClientes = clientesData.length;
-  const clientesAtivos = clientesData.filter(c => c.status === "Pago").length;
-  const receitaTotal = clientesData.reduce((sum, c) => sum + c.valor, 0);
-  const vencimento10 = clientesData.filter(c => c.vencimento === 10).length;
-  const vencimento20 = clientesData.filter(c => c.vencimento === 20).length;
+  // Dados simulados baseados na planilha
+  const kpis = [
+    {
+      title: "Total de Clientes",
+      value: "8",
+      subtitle: "6 ativos",
+      icon: Users,
+      color: "bg-blue-50",
+      iconColor: "text-blue-600"
+    },
+    {
+      title: "Receita Total",
+      value: "R$ 4.500",
+      subtitle: "Janeiro",
+      icon: DollarSign,
+      color: "bg-green-50",
+      iconColor: "text-green-600"
+    },
+    {
+      title: "Vencimento Dia 10",
+      value: "3",
+      subtitle: "cliente(s)",
+      icon: CheckCircle,
+      color: "bg-amber-50",
+      iconColor: "text-amber-600"
+    },
+    {
+      title: "Vencimento Dia 20",
+      value: "3",
+      subtitle: "cliente(s)",
+      icon: AlertCircle,
+      color: "bg-red-50",
+      iconColor: "text-red-600"
+    }
+  ];
+
+  // Dados de status de recebimento
+  const statusRecebimento = [
+    { name: "Pago", value: 4, fill: "#10b981" },
+    { name: "Pendente", value: 2, fill: "#f59e0b" },
+    { name: "Atrasado", value: 0, fill: "#ef4444" }
+  ];
+
+  // Dados de evolução de receita
+  const evolucaoReceita = [
+    { mes: "Jan", recebido: 4500, previsto: 4500 },
+    { mes: "Fev", recebido: 3200, previsto: 4500 },
+    { mes: "Mar", recebido: 3800, previsto: 4500 },
+    { mes: "Abr", recebido: 4100, previsto: 4500 },
+    { mes: "Mai", recebido: 4300, previsto: 4500 },
+    { mes: "Jun", recebido: 4500, previsto: 4500 }
+  ];
+
+  // Dados de status de obrigações
+  const statusObrigacoes = [
+    { status: "Feito", quantidade: 12, fill: "#10b981" },
+    { status: "Pendente", quantidade: 5, fill: "#f59e0b" },
+    { status: "Em Progresso", quantidade: 2, fill: "#3b82f6" },
+    { status: "Bloqueado", quantidade: 1, fill: "#ef4444" }
+  ];
+
+  // Dados por setor
+  const dadosSetor = [
+    { setor: "Fiscal", clientes: 4, obrigacoes: 8 },
+    { setor: "Trabalhista", clientes: 2, obrigacoes: 4 },
+    { setor: "Contábil", clientes: 3, obrigacoes: 6 },
+    { setor: "Geral", clientes: 1, obrigacoes: 2 }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -49,63 +83,46 @@ export default function Dashboard() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Total de Clientes</CardTitle>
-              <Users className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{totalClientes}</div>
-              <p className="text-xs text-slate-500 mt-1">{clientesAtivos} ativos</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Receita Total</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">R$ {receitaTotal.toLocaleString('pt-BR')}</div>
-              <p className="text-xs text-slate-500 mt-1">Janeiro</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Vencimento Dia 10</CardTitle>
-              <CheckCircle className="h-4 w-4 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{vencimento10}</div>
-              <p className="text-xs text-slate-500 mt-1">cliente(s)</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Vencimento Dia 20</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{vencimento20}</div>
-              <p className="text-xs text-slate-500 mt-1">cliente(s)</p>
-            </CardContent>
-          </Card>
+          {kpis.map((kpi, index) => {
+            const Icon = kpi.icon;
+            return (
+              <Card key={index} className={`${kpi.color} border-0 shadow-sm hover:shadow-md transition-shadow`}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-600 mb-1">{kpi.title}</p>
+                      <p className="text-3xl font-bold text-slate-900">{kpi.value}</p>
+                      <p className="text-xs text-slate-500 mt-2">{kpi.subtitle}</p>
+                    </div>
+                    <Icon className={`${kpi.iconColor} w-8 h-8`} />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
-        {/* Gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Status Financeiro */}
-          <Card className="bg-white shadow-lg">
+        {/* Gráficos Principais */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Status de Recebimento */}
+          <Card className="border-0 shadow-sm">
             <CardHeader>
-              <CardTitle>Status de Recebimento</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900">Status de Recebimento</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={statusFinanceiro} cx="50%" cy="50%" labelLine={false} label={({ name, value }) => `${name}: ${value}`} outerRadius={100} fill="#8884d8" dataKey="value">
-                    {statusFinanceiro.map((entry, index) => (
+                  <Pie
+                    data={statusRecebimento}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusRecebimento.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
@@ -116,44 +133,112 @@ export default function Dashboard() {
           </Card>
 
           {/* Evolução de Receita */}
-          <Card className="bg-white shadow-lg">
+          <Card className="border-0 shadow-sm">
             <CardHeader>
-              <CardTitle>Evolução de Receita (6 meses)</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900">Evolução de Receita (6 meses)</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={receitaMensal}>
+                <LineChart data={evolucaoReceita}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="mes" stroke="#64748b" />
                   <YAxis stroke="#64748b" />
-                  <Tooltip contentStyle={{ backgroundColor: "#f1f5f9", border: "1px solid #cbd5e1" }} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#1e293b", border: "none", borderRadius: "8px", color: "#fff" }}
+                  />
                   <Legend />
                   <Line type="monotone" dataKey="recebido" stroke="#10b981" strokeWidth={2} name="Recebido" />
-                  <Line type="monotone" dataKey="previsto" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" name="Previsto" />
+                  <Line type="monotone" dataKey="previsto" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" name="Previsto" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
 
-        {/* Obrigações */}
-        <div className="grid grid-cols-1 gap-8">
-          <Card className="bg-white shadow-lg">
+        {/* Gráficos Secundários */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Status de Obrigações */}
+          <Card className="border-0 shadow-sm">
             <CardHeader>
-              <CardTitle>Status de Obrigações (6 meses)</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900">Status de Obrigações</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={obrigacoesPorMes}>
+                <BarChart data={statusObrigacoes}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="mes" stroke="#64748b" />
+                  <XAxis dataKey="status" stroke="#64748b" />
                   <YAxis stroke="#64748b" />
-                  <Tooltip contentStyle={{ backgroundColor: "#f1f5f9", border: "1px solid #cbd5e1" }} />
-                  <Legend />
-                  <Bar dataKey="feito" stackId="a" fill="#10b981" name="Feito" />
-                  <Bar dataKey="pendente" stackId="a" fill="#f59e0b" name="Pendente" />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#1e293b", border: "none", borderRadius: "8px", color: "#fff" }}
+                  />
+                  <Bar dataKey="quantidade" fill="#3b82f6" radius={[8, 8, 0, 0]}>
+                    {statusObrigacoes.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Distribuição por Setor */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">Distribuição por Setor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={dadosSetor}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="setor" stroke="#64748b" />
+                  <YAxis stroke="#64748b" />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#1e293b", border: "none", borderRadius: "8px", color: "#fff" }}
+                  />
+                  <Legend />
+                  <Bar dataKey="clientes" fill="#8b5cf6" radius={[8, 8, 0, 0]} name="Clientes" />
+                  <Bar dataKey="obrigacoes" fill="#06b6d4" radius={[8, 8, 0, 0]} name="Obrigações" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Resumo Rápido */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <Card className="border-0 shadow-sm bg-blue-50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <TrendingUp className="w-12 h-12 text-blue-600" />
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Crescimento Mensal</p>
+                  <p className="text-2xl font-bold text-slate-900">+8.5%</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-green-50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <CheckCircle className="w-12 h-12 text-green-600" />
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Taxa de Conclusão</p>
+                  <p className="text-2xl font-bold text-slate-900">85%</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-amber-50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <Clock className="w-12 h-12 text-amber-600" />
+                <div>
+                  <p className="text-sm text-slate-600 mb-1">Pendências</p>
+                  <p className="text-2xl font-bold text-slate-900">7</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
