@@ -12,10 +12,15 @@
 - [ ] Implementar testes unitários para CRUD de clientes
 
 ## Fase 2: Gestão de Obrigações
-- [ ] Criar schema do banco de dados para obrigações
-- [ ] Implementar procedimentos tRPC para CRUD de obrigações
-- [ ] Criar página de Gestão de Obrigações
-- [ ] Adicionar categorias (Fiscal, Acessória, Trabalhista)
+- [x] Criar schema do banco de dados para obrigações
+- [x] Implementar procedimentos tRPC para CRUD de obrigações
+- [x] Criar página de Gestão de Obrigações com listagem
+- [x] Adicionar filtros avançados (categoria, periodicidade, regime)
+- [x] Adicionar busca e paginação
+- [x] Adicionar skeleton loading e animações
+- [x] Criar página de Gestão de Obrigações
+- [x] Adicionar categorias (Fiscal, Acessória, Trabalhista)
+- [x] Implementar testes unitários para CRUD de obrigações
 
 ## Fase 3: Checklist Mensal
 - [ ] Criar schema do banco de dados para checklist
