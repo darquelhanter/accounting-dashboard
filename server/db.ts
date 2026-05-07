@@ -146,6 +146,28 @@ export async function getChecklistByUser(userId: number) {
   return db.select().from(checklistObrigacoes).where(eq(checklistObrigacoes.userId, userId));
 }
 
+export async function getChecklistByUserAndMonth(userId: number, mes: string, ano: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(checklistObrigacoes)
+    .where(
+      eq(checklistObrigacoes.userId, userId) &&
+      eq(checklistObrigacoes.mes, mes) &&
+      eq(checklistObrigacoes.ano, ano)
+    );
+}
+
+export async function getChecklistByCliente(clienteId: number, mes: string, ano: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(checklistObrigacoes)
+    .where(
+      eq(checklistObrigacoes.clienteId, clienteId) &&
+      eq(checklistObrigacoes.mes, mes) &&
+      eq(checklistObrigacoes.ano, ano)
+    );
+}
+
 export async function createChecklistItem(data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

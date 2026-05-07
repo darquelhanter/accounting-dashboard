@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Clientes from "./pages/Clientes";
 import Obrigacoes from "./pages/Obrigacoes";
+import ChecklistMensal from "./pages/ChecklistMensal";
 import DashboardLayout from "./components/DashboardLayout";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/clientes"} component={() => <DashboardLayout><Clientes /></DashboardLayout>} />
       <Route path={"/obrigacoes"} component={() => <DashboardLayout><Obrigacoes /></DashboardLayout>} />
+      <Route path={"/checklist"} component={() => <DashboardLayout><ChecklistMensal /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

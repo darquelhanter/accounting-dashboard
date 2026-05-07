@@ -23,10 +23,10 @@
 - [x] Implementar testes unitários para CRUD de obrigações
 
 ## Fase 3: Checklist Mensal
-- [ ] Criar schema do banco de dados para checklist
-- [ ] Implementar procedimentos tRPC para checklist
-- [ ] Criar página de Checklist Mensal
-- [ ] Integrar com clientes e obrigações
+- [x] Criar schema do banco de dados para checklist
+- [x] Implementar procedimentos tRPC para checklist
+- [x] Criar página de Checklist Mensal
+- [x] Integrar com clientes e obrigações
 
 ## Fase 4: Controle de Mensalidades
 - [ ] Criar schema do banco de dados para mensalidades
@@ -50,3 +50,13 @@
 - [ ] Implementar notificações em tempo real
 - [ ] Adicionar modo escuro/claro
 - [ ] Otimizar performance e responsividade
+
+## Fase 3: Checklist Mensal (CONCLUÍDA)
+- [x] Analisar e preparar schema de checklist
+- [x] Implementar procedimentos tRPC para CRUD de checklist
+- [x] Criar página de Checklist Mensal com listagem
+- [x] Adicionar filtros por cliente, mês, ano e status
+- [x] Implementar edição inline de status e responsável
+- [x] Adicionar busca e paginação
+- [x] Adicionar skeleton loading e animações
+- [x] Implementar testes unitários para CRUD de checklist
