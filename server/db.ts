@@ -210,3 +210,59 @@ export async function deleteMensalidade(id: number) {
   if (!db) throw new Error("Database not available");
   return db.delete(controleMensalidades).where(eq(controleMensalidades.id, id));
 }
+
+export async function getMensalidadesByUserAndMonth(userId: number, mes: string, ano: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(controleMensalidades)
+    .where(
+      eq(controleMensalidades.userId, userId) &&
+      eq(controleMensalidades.mes, mes) &&
+      eq(controleMensalidades.ano, ano)
+    );
+}
+
+export async function getMensalidadesByCliente(clienteId: number, mes?: string, ano?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  let result = await db.select().from(controleMensalidades).where(eq(controleMensalidades.clienteId, clienteId));
+  if (mes && ano) {
+    result = result.filter(m => m.mes === mes && m.ano === ano);
+  }
+  return result;
+}
+
+export async function getMensalidadesByStatus(userId: number, status: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const all = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  return all.filter(m => m.status === status);
+}
+
+export async function getMensalidadesPendentes(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const all = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  return all.filter(m => m.status === "Pendente" || m.status === "Atrasado");
+}
+
+export async function getTotalMensalidadesByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return { total: 0, pago: 0, pendente: 0, atrasado: 0 };
+  const mensalidades = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  
+  let total = 0;
+  let pago = 0;
+  let pendente = 0;
+  let atrasado = 0;
+  
+  for (const m of mensalidades) {
+    const valor = parseFloat(m.valor.toString());
+    total += valor;
+    if (m.status === "Pago") pago += valor;
+    if (m.status === "Pendente") pendente += valor;
+    if (m.status === "Atrasado") atrasado += valor;
+  }
+  
+  return { total, pago, pendente, atrasado };
+}

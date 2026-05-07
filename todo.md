@@ -60,3 +60,15 @@
 - [x] Adicionar busca e paginação
 - [x] Adicionar skeleton loading e animações
 - [x] Implementar testes unitários para CRUD de checklist
+
+
+## Fase 4: Controle de Mensalidades (CONCLUÍDA)
+- [x] Analisar e preparar schema de mensalidades
+- [x] Implementar procedimentos tRPC para CRUD de mensalidades
+- [x] Criar página de Controle de Mensalidades com listagem
+- [x] Adicionar filtros por cliente e período (mês/ano)
+- [x] Adicionar filtros por status (Pago, Pendente, Atrasado)
+- [x] Implementar edição inline de status e data de pagamento
+- [x] Adicionar busca e paginação
+- [x] Adicionar skeleton loading e animações
+- [x] Implementar testes unitários para CRUD de mensalidades
