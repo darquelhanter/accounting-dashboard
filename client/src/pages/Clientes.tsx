@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,8 +25,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ClienteForm {
   nome: string;
@@ -46,16 +55,39 @@ const initialForm: ClienteForm = {
   status: "Ativo",
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function Clientes() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ClienteForm>(initialForm);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"Todos" | "Ativo" | "Inativo">("Todos");
+  const [filterRegime, setFilterRegime] = useState<string>("Todos");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const utils = trpc.useUtils();
   const { data: clientes = [], isLoading } = trpc.clientes.list.useQuery();
   const createMutation = trpc.clientes.create.useMutation();
   const updateMutation = trpc.clientes.update.useMutation();
   const deleteMutation = trpc.clientes.delete.useMutation();
+
+  // Filtrar e buscar clientes
+  const filteredClientes = useMemo(() => {
+    return clientes.filter((cliente: any) => {
+      const matchSearch = cliente.nome.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchStatus = filterStatus === "Todos" || cliente.status === filterStatus;
+      const matchRegime = filterRegime === "Todos" || cliente.regime === filterRegime;
+      return matchSearch && matchStatus && matchRegime;
+    });
+  }, [clientes, searchTerm, filterStatus, filterRegime]);
+
+  // Paginar clientes
+  const totalPages = Math.ceil(filteredClientes.length / ITEMS_PER_PAGE);
+  const paginatedClientes = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredClientes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredClientes, currentPage]);
 
   const handleOpenDialog = (cliente?: any) => {
     if (cliente) {
@@ -101,6 +133,7 @@ export default function Clientes() {
       utils.clientes.list.invalidate();
       setIsOpen(false);
       setForm(initialForm);
+      setCurrentPage(1);
     } catch (error) {
       toast.error("Erro ao salvar cliente");
       console.error(error);
@@ -108,17 +141,17 @@ export default function Clientes() {
   };
 
   const handleDelete = async (id: number): Promise<void> => {
-    if (confirm("Tem certeza que deseja deletar este cliente?")) {
-      try {
-        await deleteMutation.mutateAsync({ id });
-        toast.success("Cliente deletado com sucesso!");
-        utils.clientes.list.invalidate();
-      } catch (error) {
-        toast.error("Erro ao deletar cliente");
-        console.error(error);
-      }
+    try {
+      await deleteMutation.mutateAsync({ id });
+      toast.success("Cliente deletado com sucesso!");
+      utils.clientes.list.invalidate();
+    } catch (error) {
+      toast.error("Erro ao deletar cliente");
+      console.error(error);
     }
   };
+
+  const regimes = ["Simples", "Lucro Presumido", "Lucro Real"];
 
   return (
     <div className="space-y-6">
@@ -158,9 +191,11 @@ export default function Clientes() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Simples">Simples</SelectItem>
-                    <SelectItem value="Lucro Presumido">Lucro Presumido</SelectItem>
-                    <SelectItem value="Lucro Real">Lucro Real</SelectItem>
+                    {regimes.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -243,76 +278,198 @@ export default function Clientes() {
         </Dialog>
       </div>
 
+      {/* Filtros e Busca */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input
+                placeholder="Buscar cliente..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="pl-10"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                >
+                  <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                </button>
+              )}
+            </div>
+
+            <Select value={filterStatus} onValueChange={(value: any) => {
+              setFilterStatus(value);
+              setCurrentPage(1);
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos</SelectItem>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterRegime} onValueChange={(value) => {
+              setFilterRegime(value);
+              setCurrentPage(1);
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Regime" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos</SelectItem>
+                {regimes.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="text-sm text-slate-600 flex items-center">
+              {filteredClientes.length} cliente(s) encontrado(s)
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela de Clientes */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Clientes</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-12 bg-slate-100 rounded animate-pulse" />
+              ))}
             </div>
-          ) : clientes.length === 0 ? (
+          ) : paginatedClientes.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-slate-500">Nenhum cliente cadastrado</p>
+              <p className="text-slate-500">
+                {searchTerm || filterStatus !== "Todos" || filterRegime !== "Todos"
+                  ? "Nenhum cliente encontrado com esses filtros"
+                  : "Nenhum cliente cadastrado"}
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Regime</TableHead>
-                    <TableHead>Setor</TableHead>
-                    <TableHead>Mensalidade</TableHead>
-                    <TableHead>Vencimento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clientes.map((cliente: any) => (
-                    <TableRow key={cliente.id}>
-                      <TableCell className="font-medium">{cliente.nome}</TableCell>
-                      <TableCell>{cliente.regime}</TableCell>
-                      <TableCell>{cliente.setor}</TableCell>
-                      <TableCell>R$ {parseFloat(cliente.valor).toFixed(2)}</TableCell>
-                      <TableCell>Dia {cliente.vencimento}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            cliente.status === "Ativo"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {cliente.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenDialog(cliente)}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(cliente.id)}
-                            disabled={deleteMutation.isPending}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Regime</TableHead>
+                      <TableHead>Setor</TableHead>
+                      <TableHead>Mensalidade</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedClientes.map((cliente: any) => (
+                      <TableRow key={cliente.id} className="hover:bg-slate-50 transition-colors">
+                        <TableCell className="font-medium">{cliente.nome}</TableCell>
+                        <TableCell>{cliente.regime}</TableCell>
+                        <TableCell>{cliente.setor}</TableCell>
+                        <TableCell>R$ {parseFloat(cliente.valor).toFixed(2)}</TableCell>
+                        <TableCell>Dia {cliente.vencimento}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${
+                              cliente.status === "Ativo"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {cliente.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenDialog(cliente)}
+                              className="hover:bg-blue-50"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja deletar o cliente "{cliente.nome}"?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="flex gap-2 justify-end">
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(cliente.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Deletar
+                                  </AlertDialogAction>
+                                </div>
+                              </AlertDialogContent>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={deleteMutation.isPending}
+                                className="hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Paginação */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="text-sm text-slate-600">
+                    Página {currentPage} de {totalPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

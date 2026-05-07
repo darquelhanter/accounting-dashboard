@@ -6,6 +6,9 @@
 - [x] Criar página de Gestão de Clientes com listagem
 - [x] Melhorar interface CRUD com tabela profissional
 - [x] Adicionar validações e tratamento de erros
+- [x] Implementar busca e filtros na página de Clientes
+- [x] Adicionar paginação
+- [x] Adicionar skeleton loading e animações
 - [ ] Implementar testes unitários para CRUD de clientes
 
 ## Fase 2: Gestão de Obrigações
