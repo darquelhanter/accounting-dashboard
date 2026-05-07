@@ -4,13 +4,16 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Dashboard from "./pages/Dashboard";
-
+import Home from "./pages/Home";
+import Clientes from "./pages/Clientes";
+import DashboardLayout from "./components/DashboardLayout";
 
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Dashboard} />
+      <Route path={"/ "} component={Home} />
+      <Route path={"/clientes"} component={() => <DashboardLayout><Clientes /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
