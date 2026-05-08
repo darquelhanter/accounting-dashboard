@@ -166,7 +166,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/obrigacoes")}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -183,12 +183,12 @@ export default function Home() {
                 Gerencie obrigações fiscais, acessórias e trabalhistas. Mantenha o controle de prazos e entregas.
               </p>
               <div className="flex items-center text-orange-600 font-medium text-sm">
-                Em breve <ArrowRight className="h-4 w-4 ml-2" />
+                Acessar <ArrowRight className="h-4 w-4 ml-2" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/mensalidades")}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -205,12 +205,12 @@ export default function Home() {
                 Acompanhe o status de pagamento de suas mensalidades e identifique cobranças pendentes.
               </p>
               <div className="flex items-center text-green-600 font-medium text-sm">
-                Em breve <ArrowRight className="h-4 w-4 ml-2" />
+                Acessar <ArrowRight className="h-4 w-4 ml-2" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/checklist")}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -227,7 +227,7 @@ export default function Home() {
                 Marque o status das obrigações mensais para cada cliente e acompanhe o progresso.
               </p>
               <div className="flex items-center text-purple-600 font-medium text-sm">
-                Em breve <ArrowRight className="h-4 w-4 ml-2" />
+                Acessar <ArrowRight className="h-4 w-4 ml-2" />
               </div>
             </CardContent>
           </Card>
