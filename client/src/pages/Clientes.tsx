@@ -39,7 +39,7 @@ import {
 
 interface ClienteForm {
   nome: string;
-  regime: "Simples" | "Lucro Presumido" | "Lucro Real";
+  regime: "Simples" | "Lucro Presumido" | "MEI";
   setor: "Fiscal" | "Trabalhista" | "Contábil" | "Geral";
   valor: string;
   vencimento: string;
