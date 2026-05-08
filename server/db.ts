@@ -344,3 +344,51 @@ export async function getAlertasSumario(userId: number) {
     mensalidadesPendentes: mensalidadesPendentes.length,
   };
 }
+
+
+// Funções de KPIs para a Home
+export async function getKpisData(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    return {
+      totalClientes: 0,
+      obrigacoesPendentes: 0,
+      mensalidadesAtrasadas: 0,
+      taxaConclusao: 0,
+    };
+  }
+
+  try {
+    // Total de clientes
+    const clientesList = await db.select().from(clientes).where(eq(clientes.userId, userId));
+    const totalClientes = clientesList.length;
+
+    // Obrigações pendentes (próximas do vencimento nos próximos 7 dias)
+    const obrigacoesProximas = await getObrigacoesProximasVencimento(userId, 7);
+    const obrigacoesPendentes = obrigacoesProximas.length;
+
+    // Mensalidades atrasadas
+    const mensalidadesList = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+    const mensalidadesAtrasadas = mensalidadesList.filter((m: any) => m.status === "Atrasado").length;
+
+    // Taxa de conclusão do checklist
+    const checklistItems = await db.select().from(checklistObrigacoes).where(eq(checklistObrigacoes.userId, userId));
+    const checklistConcluidos = checklistItems.filter((item: any) => item.status === "Done").length;
+    const taxaConclusao = checklistItems.length > 0 ? Math.round((checklistConcluidos / checklistItems.length) * 100) : 0;
+
+    return {
+      totalClientes,
+      obrigacoesPendentes,
+      mensalidadesAtrasadas,
+      taxaConclusao,
+    };
+  } catch (error) {
+    console.error("[Database] Error getting KPIs:", error);
+    return {
+      totalClientes: 0,
+      obrigacoesPendentes: 0,
+      mensalidadesAtrasadas: 0,
+      taxaConclusao: 0,
+    };
+  }
+}

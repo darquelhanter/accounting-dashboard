@@ -82,3 +82,13 @@
 - [x] Implementar indicadores visuais (cores, ícones, animações)
 - [x] Adicionar testes para sistema de alertas
 - [x] Testar e validar funcionalidade completa
+
+
+## Fase 6: Correção de KPIs na Home (CONCLUÍDA)
+- [x] Analisar o problema de atualização dos KPIs
+- [x] Implementar queries para total de clientes
+- [x] Implementar queries para obrigações pendentes
+- [x] Implementar queries para mensalidades atrasadas
+- [x] Implementar queries para taxa de conclusão
+- [x] Conectar KPIs ao frontend com dados reais
+- [x] Testar e validar atualização dos KPIs

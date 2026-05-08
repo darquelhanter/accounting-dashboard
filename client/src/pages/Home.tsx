@@ -16,6 +16,11 @@ export default function Home() {
   const { data: alertasSumario } = trpc.alertas.sumario.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+  
+  // Carregar KPIs
+  const { data: kpis } = trpc.alertas.kpis.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
 
   if (!isAuthenticated) {
     return (
@@ -98,7 +103,7 @@ export default function Home() {
               <Users className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{kpis?.totalClientes || 0}</div>
               <p className="text-xs text-gray-600">Clientes cadastrados</p>
             </CardContent>
           </Card>
@@ -109,7 +114,7 @@ export default function Home() {
               <FileText className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{kpis?.obrigacoesPendentes || 0}</div>
               <p className="text-xs text-gray-600">Tarefas a fazer</p>
             </CardContent>
           </Card>
@@ -120,7 +125,7 @@ export default function Home() {
               <DollarSign className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{kpis?.mensalidadesAtrasadas || 0}</div>
               <p className="text-xs text-gray-600">Cobranças pendentes</p>
             </CardContent>
           </Card>
@@ -131,7 +136,7 @@ export default function Home() {
               <CheckSquare className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0%</div>
+              <div className="text-2xl font-bold">{kpis?.taxaConclusao || 0}%</div>
               <p className="text-xs text-gray-600">Obrigações concluídas</p>
             </CardContent>
           </Card>

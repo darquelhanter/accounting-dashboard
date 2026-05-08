@@ -4,6 +4,7 @@ import {
   getMensalidadesAtrasadas,
   getMensalidadesPendentesProximas,
   getAlertasSumario,
+  getKpisData,
 } from "../db";
 
 export const alertasRouter = router({
@@ -33,5 +34,10 @@ export const alertasRouter = router({
   // Obter sumário de alertas
   sumario: protectedProcedure.query(async ({ ctx }) => {
     return getAlertasSumario(ctx.user.id);
+  }),
+
+  // Obter KPIs para a Home
+  kpis: protectedProcedure.query(async ({ ctx }) => {
+    return getKpisData(ctx.user.id);
   }),
 });
