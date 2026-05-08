@@ -266,3 +266,81 @@ export async function getTotalMensalidadesByUser(userId: number) {
   
   return { total, pago, pendente, atrasado };
 }
+
+
+// Funções de Alertas
+export async function getObrigacoesProximasVencimento(userId: number, diasAntecedencia: number = 7) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const obrigacoesList = await db.select().from(obrigacoes).where(eq(obrigacoes.userId, userId));
+  
+  const hoje = new Date();
+  const proximosDias = new Date(hoje.getTime() + diasAntecedencia * 24 * 60 * 60 * 1000);
+  
+  return obrigacoesList.filter(obrigacao => {
+    if (!obrigacao.vencimento) return false;
+    
+    const diaVencimento = obrigacao.vencimento;
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    let dataVencimento = new Date(anoAtual, mesAtual, diaVencimento);
+    
+    // Se o vencimento já passou este mês, considerar próximo mês
+    if (dataVencimento < hoje) {
+      dataVencimento = new Date(anoAtual, mesAtual + 1, diaVencimento);
+    }
+    
+    return dataVencimento <= proximosDias && dataVencimento >= hoje;
+  });
+}
+
+export async function getMensalidadesAtrasadas(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const mensalidades = await db.select().from(controleMensalidades)
+    .where(eq(controleMensalidades.userId, userId));
+  
+  return mensalidades.filter(m => m.status === "Atrasado");
+}
+
+export async function getMensalidadesPendentesProximas(userId: number, diasAntecedencia: number = 3) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const mensalidades = await db.select().from(controleMensalidades)
+    .where(eq(controleMensalidades.userId, userId));
+  
+  const hoje = new Date();
+  const proximosDias = new Date(hoje.getTime() + diasAntecedencia * 24 * 60 * 60 * 1000);
+  
+  return mensalidades.filter(m => {
+    if (m.status !== "Pendente") return false;
+    
+    // Considerar mensalidades do mês atual e próximo mês como próximas
+    const mesAtual = hoje.getMonth() + 1;
+    const anoAtual = hoje.getFullYear();
+    
+    const mesNum = parseInt(m.mes.split('/')[0] || '0');
+    const anoNum = parseInt(m.mes.split('/')[1] || '0');
+    
+    return (mesNum === mesAtual || mesNum === mesAtual + 1) && anoNum === anoAtual;
+  });
+}
+
+export async function getAlertasSumario(userId: number) {
+  const db = await getDb();
+  if (!db) return { obrigacoesProximas: 0, mensalidadesAtrasadas: 0, mensalidadesPendentes: 0 };
+  
+  const obrigacoes = await getObrigacoesProximasVencimento(userId, 7);
+  const mensalidadesAtrasadas = await getMensalidadesAtrasadas(userId);
+  const mensalidadesPendentes = await getMensalidadesPendentesProximas(userId, 3);
+  
+  return {
+    obrigacoesProximas: obrigacoes.length,
+    mensalidadesAtrasadas: mensalidadesAtrasadas.length,
+    mensalidadesPendentes: mensalidadesPendentes.length,
+  };
+}

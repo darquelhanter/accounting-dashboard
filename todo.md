@@ -72,3 +72,13 @@
 - [x] Adicionar busca e paginação
 - [x] Adicionar skeleton loading e animações
 - [x] Implementar testes unitários para CRUD de mensalidades
+
+
+## Fase 5: Sistema de Alertas Visuais (CONCLUÍDA)
+- [x] Implementar lógica de cálculo de alertas no backend
+- [x] Criar componentes visuais de alertas (badges, banners, ícones)
+- [x] Integrar alertas nas páginas de Obrigações e Mensalidades
+- [x] Adicionar widget de notificações na Home
+- [x] Implementar indicadores visuais (cores, ícones, animações)
+- [x] Adicionar testes para sistema de alertas
+- [x] Testar e validar funcionalidade completa

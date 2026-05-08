@@ -6,6 +6,7 @@ import { clientesRouter } from "./routers/clientes";
 import { obrigacoesRouter } from "./routers/obrigacoes";
 import { checklistRouter } from "./routers/checklist";
 import { mensalidadesRouter } from "./routers/mensalidades";
+import { alertasRouter } from "./routers/alertas";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -14,6 +15,7 @@ export const appRouter = router({
   obrigacoes: obrigacoesRouter,
   checklist: checklistRouter,
   mensalidades: mensalidadesRouter,
+  alertas: alertasRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

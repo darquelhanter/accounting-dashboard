@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit2, Trash2, Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
+import { AlertBadge, AlertRow } from "@/components/AlertBadge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +60,8 @@ const initialForm: ObrigacaoForm = {
 const ITEMS_PER_PAGE = 10;
 
 export default function Obrigacoes() {
+  // Carregar alertas de obrigacoes proximas do vencimento
+  const { data: alertasData } = trpc.alertas.obrigacoesProximas.useQuery({ diasAntecedencia: 7 });
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ObrigacaoForm>(initialForm);
@@ -70,6 +73,7 @@ export default function Obrigacoes() {
 
   const utils = trpc.useUtils();
   const { data: obrigacoes = [], isLoading } = trpc.obrigacoes.list.useQuery();
+  const obrigacoesProximas = alertasData || [];
   const createMutation = trpc.obrigacoes.create.useMutation();
   const updateMutation = trpc.obrigacoes.update.useMutation();
   const deleteMutation = trpc.obrigacoes.delete.useMutation();
@@ -158,8 +162,21 @@ export default function Obrigacoes() {
   const periodicidades = ["Mensal", "Anual", "Contínuo"];
   const regimes = ["Simples", "Todos", "Com Funcionários"];
 
+  // Verificar se uma obrigação está próxima do vencimento
+  const isProximoVencimento = (obrigacao: any) => {
+    return obrigacoesProximas.some((o: any) => o.id === obrigacao.id);
+  };
+
   return (
     <div className="space-y-6">
+      {obrigacoesProximas && obrigacoesProximas.length > 0 && (
+        <AlertRow
+          type="proximo"
+          title={`${obrigacoesProximas.length} obrigação(ões) próxima(s) do vencimento`}
+          subtitle="Verifique os prazos e mantenha tudo em dia"
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Gestão de Obrigações</h1>

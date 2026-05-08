@@ -4,10 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, FileText, CheckSquare, DollarSign, ArrowRight, BarChart3 } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
+import { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
+import { AlertRow, AlertIndicator } from "@/components/AlertBadge";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  
+  // Carregar alertas
+  const { data: alertasSumario } = trpc.alertas.sumario.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
 
   if (!isAuthenticated) {
     return (
@@ -66,6 +74,21 @@ export default function Home() {
             Gerencie seu escritório contábil com eficiência
           </p>
         </div>
+
+        {/* Alertas */}
+        {alertasSumario && (alertasSumario.obrigacoesProximas > 0 || alertasSumario.mensalidadesAtrasadas > 0 || alertasSumario.mensalidadesPendentes > 0) && (
+          <div className="flex gap-3 flex-wrap">
+            {alertasSumario.obrigacoesProximas > 0 && (
+              <AlertIndicator type="proximo" count={alertasSumario.obrigacoesProximas} label="Obrigações próximas" />
+            )}
+            {alertasSumario.mensalidadesAtrasadas > 0 && (
+              <AlertIndicator type="atrasado" count={alertasSumario.mensalidadesAtrasadas} label="Mensalidades atrasadas" />
+            )}
+            {alertasSumario.mensalidadesPendentes > 0 && (
+              <AlertIndicator type="pendente" count={alertasSumario.mensalidadesPendentes} label="Mensalidades pendentes" />
+            )}
+          </div>
+        )}
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

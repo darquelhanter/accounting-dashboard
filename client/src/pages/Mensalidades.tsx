@@ -34,6 +34,7 @@ const useToast = () => ({
   },
 });
 import { Plus, Trash2, Edit2, CheckCircle2, AlertCircle } from "lucide-react";
+import { AlertBadge, AlertRow, AlertIndicator } from "@/components/AlertBadge";
 
 const MESES = [
   "Janeiro",
@@ -78,6 +79,10 @@ export default function Mensalidades() {
 
   const { data: clientes } = trpc.clientes.list.useQuery();
   const { data: totals } = trpc.mensalidades.getTotals.useQuery();
+  
+  // Carregar alertas de mensalidades
+  const { data: mensalidadesAtrasadas = [] } = trpc.alertas.mensalidadesAtrasadas.useQuery();
+  const { data: mensalidadesPendentes = [] } = trpc.alertas.mensalidadesPendentes.useQuery({ diasAntecedencia: 3 });
 
   // Mutations
   const createMutation = trpc.mensalidades.create.useMutation({
@@ -200,6 +205,23 @@ export default function Mensalidades() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Alertas */}
+      {mensalidadesAtrasadas && mensalidadesAtrasadas.length > 0 && (
+        <AlertRow
+          type="atrasado"
+          title={`${mensalidadesAtrasadas.length} mensalidade(s) em atraso`}
+          subtitle="Atenção: Existem cobranças pendentes que precisam de ação imediata"
+        />
+      )}
+      
+      {mensalidadesPendentes && mensalidadesPendentes.length > 0 && (
+        <AlertRow
+          type="pendente"
+          title={`${mensalidadesPendentes.length} mensalidade(s) próxima(s) do vencimento`}
+          subtitle="Verifique os prazos de pagamento"
+        />
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
