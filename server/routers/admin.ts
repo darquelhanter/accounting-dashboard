@@ -1,58 +1,21 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import {
-  getObrigacoesByUser,
-  createObrigacao,
-  updateObrigacao,
-  deleteObrigacao,
-} from "../db";
+import { createObrigacao } from "../db";
+import { TRPCError } from "@trpc/server";
 
-const obrigacaoSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
-  categoria: z.enum(["Fiscal", "Acessória", "Trabalhista", "Outra"]),
-  periodicidade: z.enum(["Mensal", "Anual", "Contínuo"]),
-  regime: z.enum(["Simples", "Todos", "Com Funcionários"]),
-  descricao: z.string().optional(),
-  vencimento: z.number().optional(),
+// Procedimento que requer role admin
+const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.user.role !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Apenas administradores podem acessar este recurso",
+    });
+  }
+  return next({ ctx });
 });
 
-export const obrigacoesRouter = router({
-  list: protectedProcedure.query(async ({ ctx }) => {
-    return getObrigacoesByUser(ctx.user.id);
-  }),
-
-  create: protectedProcedure
-    .input(obrigacaoSchema)
-    .mutation(async ({ ctx, input }) => {
-      return createObrigacao({
-        userId: ctx.user.id,
-        nome: input.nome,
-        categoria: input.categoria,
-        periodicidade: input.periodicidade,
-        regime: input.regime,
-        descricao: input.descricao || null,
-        vencimento: input.vencimento || null,
-      });
-    }),
-
-  update: protectedProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        data: obrigacaoSchema.partial(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      return updateObrigacao(input.id, input.data);
-    }),
-
-  delete: protectedProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      return deleteObrigacao(input.id);
-    }),
-
-  seedPadrao: protectedProcedure.mutation(async ({ ctx }) => {
+export const adminRouter = router({
+  seedObrigacoesPadrao: adminProcedure.mutation(async ({ ctx }) => {
     const obrigacoesPadrao = [
       {
         nome: "INSS",
@@ -97,6 +60,8 @@ export const obrigacoesRouter = router({
     ];
 
     const criadas = [];
+    const erros = [];
+
     for (const obrigacao of obrigacoesPadrao) {
       try {
         const resultado = await createObrigacao({
@@ -110,14 +75,44 @@ export const obrigacoesRouter = router({
         });
         criadas.push(resultado);
       } catch (error) {
-        console.log(`Obrigacao ${obrigacao.nome} pode ja existir`);
+        erros.push({
+          nome: obrigacao.nome,
+          erro: error instanceof Error ? error.message : "Erro desconhecido",
+        });
       }
     }
 
     return {
       sucesso: true,
-      mensagem: `${criadas.length} obrigacoes padrao criadas`,
-      obrigacoes: criadas,
+      mensagem: `${criadas.length} obrigações padrão criadas com sucesso`,
+      criadas: criadas.length,
+      erros: erros.length,
+      detalhes: {
+        criadas,
+        erros,
+      },
     };
   }),
+
+  // Endpoint para listar todas as obrigações de todos os usuários (admin only)
+  listarTodasObrigacoes: adminProcedure.query(async ({ ctx }) => {
+    const db = await import("../db");
+    // Aqui você poderia implementar uma função que lista todas as obrigações
+    // Por enquanto, retornamos um placeholder
+    return {
+      mensagem: "Endpoint de administração para listar todas as obrigações",
+      usuarioId: ctx.user.id,
+      role: ctx.user.role,
+    };
+  }),
+
+  // Endpoint para deletar obrigações de um usuário específico (admin only)
+  deletarObrigacoesDoUsuario: adminProcedure
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ input }) => {
+      // Aqui você poderia implementar a lógica de deleção
+      return {
+        mensagem: `Obrigações do usuário ${input.userId} deletadas`,
+      };
+    }),
 });

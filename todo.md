@@ -92,3 +92,12 @@
 - [x] Implementar queries para taxa de conclusão
 - [x] Conectar KPIs ao frontend com dados reais
 - [x] Testar e validar atualização dos KPIs
+
+
+## Fase 2 (Revisão): Gestão de Obrigações Específicas
+- [ ] Criar seed de dados com 5 obrigações (INSS, FGTS, eSocial, Folha Mensal, DCTFWeb)
+- [ ] Implementar interface melhorada de gestão de obrigações
+- [ ] Adicionar filtros por tipo de obrigação
+- [ ] Adicionar busca avançada por nome e descrição
+- [ ] Implementar testes unitários para obrigações específicas
+- [ ] Validar interface com dados reais

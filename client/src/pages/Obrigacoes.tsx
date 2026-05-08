@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { SeedObrigacoesButton } from "@/components/SeedObrigacoesButton";
 
 interface ObrigacaoForm {
   nome: string;
@@ -182,14 +183,16 @@ export default function Obrigacoes() {
           <h1 className="text-3xl font-bold text-slate-900">Gestão de Obrigações</h1>
           <p className="text-slate-600 mt-1">Cadastre e gerencie as obrigações contábeis</p>
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()} className="gap-2 bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4" />
-              Nova Obrigação
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex gap-2">
+          <SeedObrigacoesButton />
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => handleOpenDialog()} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4" />
+                Nova Obrigação
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingId ? "Editar Obrigação" : "Nova Obrigação"}
@@ -299,8 +302,9 @@ export default function Obrigacoes() {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filtros e Busca */}
