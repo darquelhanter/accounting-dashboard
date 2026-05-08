@@ -101,3 +101,14 @@
 - [ ] Adicionar busca avançada por nome e descrição
 - [ ] Implementar testes unitários para obrigações específicas
 - [ ] Validar interface com dados reais
+
+
+## Fase 7: Página de Administração (EM PROGRESSO)
+- [ ] Analisar e preparar backend para administração
+- [ ] Implementar procedimentos tRPC para gerenciar usuários
+- [ ] Implementar procedimentos tRPC para alterar permissões
+- [ ] Criar página de administração com layout
+- [ ] Adicionar aba de gerenciamento de usuários
+- [ ] Adicionar aba de operações em lote
+- [ ] Adicionar aba de log de atividades
+- [ ] Implementar testes unitários para admin

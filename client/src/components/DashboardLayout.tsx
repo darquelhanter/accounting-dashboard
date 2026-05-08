@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, CheckSquare, DollarSign } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, CheckSquare, DollarSign, Settings } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -33,6 +33,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Obrigações", path: "/obrigacoes" },
   { icon: CheckSquare, label: "Checklist", path: "/checklist" },
   { icon: DollarSign, label: "Mensalidades", path: "/mensalidades" },
+  { icon: Settings, label: "Administração", path: "/admin" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
