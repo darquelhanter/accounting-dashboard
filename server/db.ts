@@ -136,7 +136,7 @@ export async function updateObrigacao(id: number, data: any) {
 export async function deleteObrigacao(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.delete(obrigacoes).where(eq(obrigacoes.id, id));
+  return await db.delete(obrigacoes).where(eq(obrigacoes.id, id));
 }
 
 // Checklist Obrigações
