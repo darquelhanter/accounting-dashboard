@@ -15,6 +15,13 @@
       "when": 1778153555813,
       "tag": "0001_last_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1778461060929,
+      "tag": "0002_cold_gamma_corps",
+      "breakpoints": true
     }
   ]
 }

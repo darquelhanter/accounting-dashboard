@@ -30,7 +30,7 @@ export const clientes = mysqlTable("clientes", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   nome: varchar("nome", { length: 255 }).notNull(),
-  regime: mysqlEnum("regime", ["Simples", "Lucro Presumido", "Lucro Real"]).notNull(),
+  regime: mysqlEnum("regime", ["Simples", "Lucro Presumido", "Lucro Real", "MEI"]).notNull(),
   setor: mysqlEnum("setor", ["Fiscal", "Trabalhista", "Contábil", "Geral"]).default("Geral"),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   vencimento: int("vencimento").notNull(), // 10 ou 20

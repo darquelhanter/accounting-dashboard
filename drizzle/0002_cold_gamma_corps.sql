@@ -1,0 +1,1 @@
+ALTER TABLE `clientes` MODIFY COLUMN `regime` enum('Simples','Lucro Presumido','Lucro Real','MEI') NOT NULL;

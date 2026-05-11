@@ -105,13 +105,13 @@ export async function createCliente(data: any) {
 export async function updateCliente(id: number, data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.update(clientes).set(data).where(eq(clientes.id, id));
+  return await db.update(clientes).set(data).where(eq(clientes.id, id));
 }
 
 export async function deleteCliente(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.delete(clientes).where(eq(clientes.id, id));
+  return await db.delete(clientes).where(eq(clientes.id, id));
 }
 
 // Obrigações
@@ -130,7 +130,7 @@ export async function createObrigacao(data: any) {
 export async function updateObrigacao(id: number, data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.update(obrigacoes).set(data).where(eq(obrigacoes.id, id));
+  return await db.update(obrigacoes).set(data).where(eq(obrigacoes.id, id));
 }
 
 export async function deleteObrigacao(id: number) {
@@ -177,13 +177,13 @@ export async function createChecklistItem(data: any) {
 export async function updateChecklistItem(id: number, data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.update(checklistObrigacoes).set(data).where(eq(checklistObrigacoes.id, id));
+  return await db.update(checklistObrigacoes).set(data).where(eq(checklistObrigacoes.id, id));
 }
 
 export async function deleteChecklistItem(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.delete(checklistObrigacoes).where(eq(checklistObrigacoes.id, id));
+  return await db.delete(checklistObrigacoes).where(eq(checklistObrigacoes.id, id));
 }
 
 // Controle Mensalidades
@@ -202,13 +202,13 @@ export async function createMensalidade(data: any) {
 export async function updateMensalidade(id: number, data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.update(controleMensalidades).set(data).where(eq(controleMensalidades.id, id));
+  return await db.update(controleMensalidades).set(data).where(eq(controleMensalidades.id, id));
 }
 
 export async function deleteMensalidade(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.delete(controleMensalidades).where(eq(controleMensalidades.id, id));
+  return await db.delete(controleMensalidades).where(eq(controleMensalidades.id, id));
 }
 
 export async function getMensalidadesByUserAndMonth(userId: number, mes: string, ano: number) {

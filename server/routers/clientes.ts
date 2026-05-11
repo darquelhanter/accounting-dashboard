@@ -9,7 +9,7 @@ import {
 
 const clienteSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
-  regime: z.enum(["Simples", "Lucro Presumido", "Lucro Real"]),
+  regime: z.enum(["Simples", "Lucro Presumido", "Lucro Real", "MEI"]),
   setor: z.enum(["Fiscal", "Trabalhista", "Contábil", "Geral"]).optional(),
   valor: z.string().or(z.number()),
   vencimento: z.number().min(1).max(31),
