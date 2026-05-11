@@ -18,14 +18,19 @@ const clienteSchema = z.object({
 
 export const clientesRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return getClientesByUser(ctx.user.id);
+    const clientes = await getClientesByUser(ctx.user.id);
+    // Normalizar valor para número (MySQL DECIMAL retorna como string)
+    return clientes.map((cliente: any) => ({
+      ...cliente,
+      valor: typeof cliente.valor === 'number' ? cliente.valor : Number(cliente.valor),
+    }));
   }),
 
   create: protectedProcedure
     .input(clienteSchema)
     .mutation(async ({ ctx, input }) => {
       const valor = typeof input.valor === "string" ? parseFloat(input.valor) : input.valor;
-      return createCliente({
+      const result = await createCliente({
         userId: ctx.user.id,
         nome: input.nome,
         regime: input.regime,
@@ -34,6 +39,12 @@ export const clientesRouter = router({
         vencimento: input.vencimento,
         status: input.status || "Ativo",
       });
+      
+      // Normalizar valor para número
+      return {
+        ...result,
+        valor: typeof (result as any).valor === 'number' ? (result as any).valor : Number((result as any).valor),
+      };
     }),
 
   update: protectedProcedure
@@ -50,15 +61,26 @@ export const clientesRouter = router({
           : input.data.valor
         : undefined;
 
-      return updateCliente(input.id, {
+      const result = await updateCliente(input.id, {
         ...input.data,
         ...(valor !== undefined && { valor }),
       });
+      
+      // Normalizar valor para número
+      return {
+        ...result,
+        valor: typeof (result as any).valor === 'number' ? (result as any).valor : Number((result as any).valor),
+      };
     }),
 
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      return deleteCliente(input.id);
+      const result = await deleteCliente(input.id);
+      // Normalizar valor para número
+      return {
+        ...result,
+        valor: typeof (result as any).valor === 'number' ? (result as any).valor : Number((result as any).valor),
+      };
     }),
 });
