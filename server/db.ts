@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -391,4 +391,37 @@ export async function getKpisData(userId: number) {
       taxaConclusao: 0,
     };
   }
+}
+
+// Notificação Configs
+export async function getNotificacaoConfig(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(notificacaoConfigs).where(eq(notificacaoConfigs.userId, userId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createNotificacaoConfig(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(notificacaoConfigs).values(data);
+}
+
+export async function updateNotificacaoConfig(userId: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(notificacaoConfigs).set(data).where(eq(notificacaoConfigs.userId, userId));
+}
+
+export async function deleteNotificacaoConfig(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(notificacaoConfigs).where(eq(notificacaoConfigs.userId, userId));
+}
+
+export async function getAllNotificacaoConfigs() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(notificacaoConfigs).where(eq(notificacaoConfigs.ativo, true));
 }

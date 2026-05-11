@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -97,3 +97,21 @@ export const controleMensalidades = mysqlTable("controle_mensalidades", {
 
 export type ControleMensalidade = typeof controleMensalidades.$inferSelect;
 export type InsertControleMensalidade = typeof controleMensalidades.$inferInsert;
+
+// Tabela de Configurações de Notificações
+export const notificacaoConfigs = mysqlTable("notificacao_configs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  ativarMensalidades: boolean("ativarMensalidades").default(true).notNull(),
+  diasAntecedencia: int("diasAntecedencia").default(3).notNull(), // Dias antes do vencimento
+  ativarObrigacoes: boolean("ativarObrigacoes").default(true).notNull(),
+  ativarChecklist: boolean("ativarChecklist").default(true).notNull(),
+  horarioEnvio: varchar("horarioEnvio", { length: 5 }).default("09:00").notNull(), // HH:mm
+  frequencia: mysqlEnum("frequencia", ["Diaria", "Semanal", "Mensal"]).default("Diaria").notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type NotificacaoConfig = typeof notificacaoConfigs.$inferSelect;
+export type InsertNotificacaoConfig = typeof notificacaoConfigs.$inferInsert;

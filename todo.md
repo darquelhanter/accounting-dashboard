@@ -142,3 +142,16 @@
 - [ ] Criar interface de configuração de notificações
 - [ ] Implementar agendamento automático de emails
 - [ ] Testar e validar funcionalidade completa
+
+
+## Fase 10: Notificações Automáticas para Mensalidades (CONCLUÍDA)
+- [x] Analisar e planejar sistema de notificações automáticas
+- [x] Instalar e configurar node-cron para agendamento de jobs
+- [x] Criar schema para armazenar configurações de notificações
+- [x] Implementar procedimentos tRPC para CRUD de configurações
+- [x] Criar job de verificação de mensalidades próximas do vencimento
+- [x] Integrar com emailService para envio automático
+- [x] Criar interface de configuração de notificações
+- [x] Adicionar link no menu lateral
+- [x] Implementar testes unitários para configurações (7 testes passando)
+- [x] Testar e validar funcionalidade completa (92 testes passando)

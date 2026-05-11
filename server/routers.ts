@@ -9,6 +9,7 @@ import { mensalidadesRouter } from "./routers/mensalidades";
 import { alertasRouter } from "./routers/alertas";
 import { adminRouter } from "./routers/admin";
 import { notificacoesRouter } from "./routers/notificacoes";
+import { notificacaoConfigsRouter } from "./routers/notificacaoConfigs";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -20,6 +21,7 @@ export const appRouter = router({
   alertas: alertasRouter,
   admin: adminRouter,
   notificacoes: notificacoesRouter,
+  notificacaoConfigs: router(notificacaoConfigsRouter),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
