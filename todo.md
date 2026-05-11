@@ -122,3 +122,17 @@
 - [ ] Integrar filtros com backend (queries otimizadas)
 - [ ] Implementar testes para filtros
 - [ ] Testar e validar funcionalidade completa
+
+
+## Fase 9: Notificações por Email (EM PROGRESSO)
+- [x] Implementar serviço de envio de emails (emailService.ts)
+- [x] Criar procedimentos tRPC para notificações (notificacoes.ts)
+- [x] Adicionar campo email à tabela clientes
+- [x] Implementar lógica de alertas de obrigações próximas do vencimento
+- [x] Implementar lógica de alertas de mensalidades atrasadas
+- [x] Implementar lógica de alertas de checklist pendente
+- [x] Registrar notificacoesRouter no appRouter
+- [x] Adicionar testes unitários para notificações (10 testes passando)
+- [ ] Criar interface de configuração de notificações
+- [ ] Implementar agendamento automático de emails
+- [ ] Testar e validar funcionalidade completa
