@@ -40,4 +40,13 @@ export const alertasRouter = router({
   kpis: protectedProcedure.query(async ({ ctx }) => {
     return getKpisData(ctx.user.id);
   }),
+
+  // Obter detalhes de obrigações próximas com informações de cliente
+  obrigacoesProximasDetalhes: protectedProcedure
+    .input((val: any) => ({
+      diasAntecedencia: typeof val?.diasAntecedencia === 'number' ? val.diasAntecedencia : 7,
+    }))
+    .query(async ({ ctx, input }) => {
+      return getObrigacoesProximasVencimento(ctx.user.id, input.diasAntecedencia);
+    }),
 });

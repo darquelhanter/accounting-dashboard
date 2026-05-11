@@ -7,6 +7,7 @@ import { getLoginUrl } from "@/const";
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { AlertRow, AlertIndicator } from "@/components/AlertBadge";
+import { AlertDetailsModal } from "@/components/AlertDetailsModal";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -84,13 +85,13 @@ export default function Home() {
         {alertasSumario && (alertasSumario.obrigacoesProximas > 0 || alertasSumario.mensalidadesAtrasadas > 0 || alertasSumario.mensalidadesPendentes > 0) && (
           <div className="flex gap-3 flex-wrap">
             {alertasSumario.obrigacoesProximas > 0 && (
-              <AlertIndicator type="proximo" count={alertasSumario.obrigacoesProximas} label="Obrigações próximas" />
+              <AlertDetailsModal type="proximo" count={alertasSumario.obrigacoesProximas} label="Obrigacoes proximas" />
             )}
             {alertasSumario.mensalidadesAtrasadas > 0 && (
-              <AlertIndicator type="atrasado" count={alertasSumario.mensalidadesAtrasadas} label="Mensalidades atrasadas" />
+              <AlertDetailsModal type="atrasado" count={alertasSumario.mensalidadesAtrasadas} label="Mensalidades atrasadas" />
             )}
             {alertasSumario.mensalidadesPendentes > 0 && (
-              <AlertIndicator type="pendente" count={alertasSumario.mensalidadesPendentes} label="Mensalidades pendentes" />
+              <AlertDetailsModal type="pendente" count={alertasSumario.mensalidadesPendentes} label="Mensalidades pendentes" />
             )}
           </div>
         )}

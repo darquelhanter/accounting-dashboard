@@ -176,3 +176,13 @@
 - [x] Adicionar filtro visual por regime na página de Obrigações
 - [x] Implementar testes unitários (8 testes passando)
 - [x] Testar e validar funcionalidade completa (101 testes passando)
+
+
+## Fase 12: Detalhes de Notificações de Vencimento (CONCLUÍDA)
+- [x] Analisar e planejar funcionalidade de detalhes
+- [x] Criar componente Modal/Drawer para visualização (AlertDetailsModal.tsx)
+- [x] Implementar procedimento tRPC obrigacoesProximasDetalhes
+- [x] Integrar modal na página Home com clique
+- [x] Adicionar tabelas com filtros e ordenação no modal
+- [x] Todos os 101 testes passando
+- [x] Testar e validar funcionalidade completa
