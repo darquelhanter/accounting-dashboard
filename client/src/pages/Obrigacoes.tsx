@@ -45,7 +45,7 @@ interface ObrigacaoForm {
   nome: string;
   categoria: "Fiscal" | "Acessória" | "Trabalhista" | "Outra";
   periodicidade: "Mensal" | "Anual" | "Contínuo";
-  regime: "Simples" | "Todos" | "Com Funcionários";
+  regime: "Simples" | "Todos" | "Com Funcionários" | "MEI";
   descricao: string;
   vencimento: string;
 }
@@ -162,7 +162,7 @@ export default function Obrigacoes() {
 
   const categorias = ["Fiscal", "Acessória", "Trabalhista", "Outra"];
   const periodicidades = ["Mensal", "Anual", "Contínuo"];
-  const regimes = ["Simples", "Todos", "Com Funcionários"];
+  const regimes = ["Simples", "Todos", "Com Funcionários", "MEI"];
 
   // Verificar se uma obrigação está próxima do vencimento
   const isProximoVencimento = (obrigacao: any) => {

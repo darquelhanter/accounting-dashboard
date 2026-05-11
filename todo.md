@@ -155,3 +155,13 @@
 - [x] Adicionar link no menu lateral
 - [x] Implementar testes unitários para configurações (7 testes passando)
 - [x] Testar e validar funcionalidade completa (92 testes passando)
+
+
+## Melhorias Recentes
+- [x] Adicionar opção MEI ao campo de Regime na gestão de obrigações
+  - [x] Atualizar enum no schema (drizzle/schema.ts)
+  - [x] Aplicar migração SQL
+  - [x] Atualizar validação no router (server/routers/obrigacoes.ts)
+  - [x] Atualizar interface TypeScript (client/src/pages/Obrigacoes.tsx)
+  - [x] Atualizar lista de opções no Select
+  - [x] Todos os testes passando (92 testes)

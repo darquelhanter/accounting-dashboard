@@ -51,7 +51,7 @@ export const obrigacoes = mysqlTable("obrigacoes", {
   categoria: mysqlEnum("categoria", ["Fiscal", "Acessória", "Trabalhista", "Outra"]).notNull(),
   periodicidade: mysqlEnum("periodicidade", ["Mensal", "Anual", "Contínuo"]).notNull(),
   vencimento: int("vencimento"), // dia do mês
-  regime: mysqlEnum("regime", ["Simples", "Todos", "Com Funcionários"]).notNull(),
+  regime: mysqlEnum("regime", ["Simples", "Todos", "Com Funcionários", "MEI"]).notNull(),
   descricao: text("descricao"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

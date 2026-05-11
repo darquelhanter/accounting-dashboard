@@ -11,7 +11,7 @@ const obrigacaoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   categoria: z.enum(["Fiscal", "Acessória", "Trabalhista", "Outra"]),
   periodicidade: z.enum(["Mensal", "Anual", "Contínuo"]),
-  regime: z.enum(["Simples", "Todos", "Com Funcionários"]),
+  regime: z.enum(["Simples", "Todos", "Com Funcionários", "MEI"]),
   descricao: z.string().optional(),
   vencimento: z.number().optional(),
 });

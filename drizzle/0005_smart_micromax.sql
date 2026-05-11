@@ -1,0 +1,1 @@
+ALTER TABLE `obrigacoes` MODIFY COLUMN `regime` enum('Simples','Todos','Com Funcionários','MEI') NOT NULL;

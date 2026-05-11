@@ -36,6 +36,13 @@
       "when": 1778499684315,
       "tag": "0004_simple_hemingway",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1778501033761,
+      "tag": "0005_smart_micromax",
+      "breakpoints": true
     }
   ]
 }
