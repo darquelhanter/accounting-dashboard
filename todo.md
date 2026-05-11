@@ -165,3 +165,14 @@
   - [x] Atualizar interface TypeScript (client/src/pages/Obrigacoes.tsx)
   - [x] Atualizar lista de opções no Select
   - [x] Todos os testes passando (92 testes)
+
+
+## Fase 11: Filtro de Obrigações Específicas para MEI (CONCLUÍDA)
+- [x] Analisar e planejar obrigações específicas para MEI
+- [x] Criar seed de obrigações MEI (DAS, declarações simplificadas, etc)
+- [x] Implementar procedimento tRPC listByRegime para filtrar por regime
+- [x] Implementar procedimento tRPC seedMEI com 5 obrigações
+- [x] Criar interface de seleção automática de obrigações (botão + para MEI)
+- [x] Adicionar filtro visual por regime na página de Obrigações
+- [x] Implementar testes unitários (8 testes passando)
+- [x] Testar e validar funcionalidade completa (101 testes passando)

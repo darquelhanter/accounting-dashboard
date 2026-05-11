@@ -184,6 +184,17 @@ export default function Clientes() {
     }
   };
 
+  const handleAddMEIObrigacoes = async () => {
+    try {
+      await trpc.obrigacoes.seedMEI.mutate();
+      toast.success("Obrigações MEI adicionadas com sucesso!");
+      utils.obrigacoes.list.invalidate();
+    } catch (error) {
+      toast.error("Erro ao adicionar obrigações MEI");
+      console.error(error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -367,6 +378,7 @@ export default function Clientes() {
                       <TableHead>Valor (R$)</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Regime</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -374,7 +386,11 @@ export default function Clientes() {
                     {paginatedClientes.map((cliente: any) => (
                       <TableRow key={cliente.id}>
                         <TableCell className="font-medium">{cliente.nome}</TableCell>
-                        <TableCell>{cliente.regime}</TableCell>
+                        <TableCell>
+                          <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                            {cliente.regime}
+                          </span>
+                        </TableCell>
                         <TableCell>{cliente.setor}</TableCell>
                         <TableCell>R$ {cliente.valor.toFixed(2)}</TableCell>
                         <TableCell>Dia {cliente.vencimento}</TableCell>
@@ -389,6 +405,17 @@ export default function Clientes() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
+                            {cliente.regime === "MEI" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAddMEIObrigacoes(cliente.id)}
+                                className="hover:bg-green-50"
+                                title="Adicionar obrigações MEI"
+                              >
+                                <Plus className="w-4 h-4 text-green-600" />
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
