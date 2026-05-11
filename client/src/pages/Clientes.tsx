@@ -35,11 +35,12 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 interface ClienteForm {
   nome: string;
-  regime: "Simples" | "Lucro Presumido" | "MEI";
+  regime: "Simples" | "Lucro Presumido" | "Lucro Real" | "MEI";
   setor: "Fiscal" | "Trabalhista" | "Contábil" | "Geral";
   valor: string;
   vencimento: string;
@@ -151,7 +152,7 @@ export default function Clientes() {
     }
   };
 
-  const regimes = ["Simples", "Lucro Presumido", "Lucro Real"];
+  const regimes = ["Simples", "Lucro Presumido", "Lucro Real", "MEI"];
 
   return (
     <div className="space-y-6">
@@ -409,6 +410,16 @@ export default function Clientes() {
                               <Edit2 className="w-4 h-4" />
                             </Button>
                             <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={deleteMutation.isPending}
+                                  className="hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </Button>
+                              </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
@@ -426,14 +437,6 @@ export default function Clientes() {
                                   </AlertDialogAction>
                                 </div>
                               </AlertDialogContent>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={deleteMutation.isPending}
-                                className="hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-600" />
-                              </Button>
                             </AlertDialog>
                           </div>
                         </TableCell>

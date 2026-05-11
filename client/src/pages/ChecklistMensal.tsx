@@ -35,6 +35,7 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -588,6 +589,16 @@ export default function ChecklistMensal() {
                                 <Edit2 className="w-4 h-4" />
                               </Button>
                               <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={deleteMutation.isPending}
+                                    className="hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                  </Button>
+                                </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
@@ -605,14 +616,6 @@ export default function ChecklistMensal() {
                                     </AlertDialogAction>
                                   </div>
                                 </AlertDialogContent>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={deleteMutation.isPending}
-                                  className="hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-600" />
-                                </Button>
                               </AlertDialog>
                             </div>
                           </TableCell>
