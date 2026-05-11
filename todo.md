@@ -72,6 +72,12 @@
 - [x] Adicionar busca e paginação
 - [x] Adicionar skeleton loading e animações
 - [x] Implementar testes unitários para CRUD de mensalidades
+- [x] Revisar e melhorar a página de Mensalidades
+- [x] Corrigir imports (useState, useMemo)
+- [x] Adicionar validação de valores positivos
+- [x] Implementar confirmação de exclusão com AlertDialog
+- [x] Melhorar paginação com controles de navegação
+- [x] Adicionar tooltips nos botões de ação
 
 
 ## Fase 5: Sistema de Alertas Visuais (CONCLUÍDA)

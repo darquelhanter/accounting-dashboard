@@ -24,16 +24,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-// Toast hook - usando console como fallback
-const useToast = () => ({
-  toast: ({ title, description, variant }: any) => {
-    console.log(`[${variant || 'info'}] ${title}: ${description}`);
-  },
-});
-import { Plus, Trash2, Edit2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Edit2, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { AlertBadge, AlertRow, AlertIndicator } from "@/components/AlertBadge";
 
 const MESES = [
@@ -52,9 +56,9 @@ const MESES = [
 ];
 
 const ANOS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+const ITEMS_PER_PAGE = 10;
 
 export default function Mensalidades() {
-  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedMes, setSelectedMes] = useState(MESES[new Date().getMonth()]);
@@ -62,6 +66,8 @@ export default function Mensalidades() {
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [selectedCliente, setSelectedCliente] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -87,45 +93,42 @@ export default function Mensalidades() {
   // Mutations
   const createMutation = trpc.mensalidades.create.useMutation({
     onSuccess: () => {
-      toast({ title: "Sucesso", description: "Mensalidade criada com sucesso" });
       refetch();
       setIsOpen(false);
       resetForm();
     },
     onError: (error) => {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      console.error("Erro ao criar mensalidade:", error);
     },
   });
 
   const updateMutation = trpc.mensalidades.update.useMutation({
     onSuccess: () => {
-      toast({ title: "Sucesso", description: "Mensalidade atualizada com sucesso" });
       refetch();
       setEditingId(null);
       resetForm();
     },
     onError: (error) => {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      console.error("Erro ao atualizar mensalidade:", error);
     },
   });
 
   const deleteMutation = trpc.mensalidades.delete.useMutation({
     onSuccess: () => {
-      toast({ title: "Sucesso", description: "Mensalidade deletada com sucesso" });
       refetch();
+      setDeleteId(null);
     },
     onError: (error) => {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      console.error("Erro ao deletar mensalidade:", error);
     },
   });
 
   const markAsPaidMutation = trpc.mensalidades.markAsPaid.useMutation({
     onSuccess: () => {
-      toast({ title: "Sucesso", description: "Marcado como pago" });
       refetch();
     },
     onError: (error) => {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      console.error("Erro ao marcar como pago:", error);
     },
   });
 
@@ -143,6 +146,13 @@ export default function Mensalidades() {
     });
   }, [mensalidades, selectedStatus, selectedCliente, searchTerm, clientes]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredMensalidades.length / ITEMS_PER_PAGE);
+  const paginatedMensalidades = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredMensalidades.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredMensalidades, currentPage]);
+
   const resetForm = () => {
     setFormData({
       clienteId: "",
@@ -155,8 +165,15 @@ export default function Mensalidades() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!formData.clienteId || !formData.valor) {
-      toast({ title: "Erro", description: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      alert("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    const valor = parseFloat(formData.valor);
+    if (isNaN(valor) || valor <= 0) {
+      alert("O valor deve ser um número positivo");
       return;
     }
 
@@ -257,10 +274,11 @@ export default function Mensalidades() {
               </div>
 
               <div>
-                <label className="text-sm font-medium">Valor *</label>
+                <label className="text-sm font-medium">Valor (R$) *</label>
                 <Input
                   type="number"
                   step="0.01"
+                  min="0.01"
                   placeholder="0.00"
                   value={formData.valor}
                   onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
@@ -468,7 +486,7 @@ export default function Mensalidades() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredMensalidades.map((m) => {
+              paginatedMensalidades.map((m) => {
                 const cliente = clientes?.find((c) => c.id === m.clienteId);
                 return (
                   <TableRow key={m.id}>
@@ -495,6 +513,8 @@ export default function Mensalidades() {
                             size="sm"
                             variant="outline"
                             onClick={() => markAsPaidMutation.mutate({ id: m.id })}
+                            disabled={markAsPaidMutation.isPending}
+                            title="Marcar como pago"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                           </Button>
@@ -514,16 +534,39 @@ export default function Mensalidades() {
                             setEditingId(m.id);
                             setIsOpen(true);
                           }}
+                          title="Editar"
                         >
                           <Edit2 className="w-4 h-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => deleteMutation.mutate({ id: m.id })}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <AlertDialog open={deleteId === m.id} onOpenChange={(open) => !open && setDeleteId(null)}>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => setDeleteId(m.id)}
+                              title="Deletar"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja deletar esta mensalidade? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="flex gap-2 justify-end">
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate({ id: m.id })}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Deletar
+                              </AlertDialogAction>
+                            </div>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -533,6 +576,45 @@ export default function Mensalidades() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {filteredMensalidades.length > ITEMS_PER_PAGE && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredMensalidades.length)} de {filteredMensalidades.length} mensalidades
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
