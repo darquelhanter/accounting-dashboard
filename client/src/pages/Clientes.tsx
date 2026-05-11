@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Edit2, Trash2, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -65,7 +66,7 @@ export default function Clientes() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ClienteForm>(initialForm);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"Todos" | "Ativo" | "Inativo">("Todos");
+  const [filterStatus, setFilterStatus] = useState<"Ativo" | "Inativo">("Ativo");
   const [filterRegime, setFilterRegime] = useState<string>("Todos");
   const [sortBy, setSortBy] = useState<string>("nome");
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,7 +81,7 @@ export default function Clientes() {
   const filteredClientes = useMemo(() => {
     let result = clientes.filter((cliente: any) => {
       const matchSearch = cliente.nome.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus = filterStatus === "Todos" || cliente.status === filterStatus;
+      const matchStatus = cliente.status === filterStatus;
       const matchRegime = filterRegime === "Todos" || cliente.regime === filterRegime;
       return matchSearch && matchStatus && matchRegime;
     });
@@ -115,7 +116,7 @@ export default function Clientes() {
 
   const handleClearFilters = () => {
     setSearchTerm("");
-    setFilterStatus("Todos");
+    setFilterStatus("Ativo");
     setFilterRegime("Todos");
     setSortBy("nome");
     setCurrentPage(1);
@@ -306,6 +307,17 @@ export default function Clientes() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Abas de Status */}
+      <Tabs value={filterStatus} onValueChange={(value: any) => {
+        setFilterStatus(value);
+        setCurrentPage(1);
+      }} className="w-full mb-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="Ativo">Ativos</TabsTrigger>
+          <TabsTrigger value="Inativo">Inativos</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Filtros Avançados */}
       <ClienteFilters
