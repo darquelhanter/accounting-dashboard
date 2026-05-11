@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2, Search, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ClienteFilters } from "@/components/ClienteFilters";
 
 interface ClienteForm {
   nome: string;
@@ -56,6 +57,7 @@ const initialForm: ClienteForm = {
   status: "Ativo",
 };
 
+const regimes = ["Simples", "Lucro Presumido", "Lucro Real", "MEI"];
 const ITEMS_PER_PAGE = 10;
 
 export default function Clientes() {
@@ -65,6 +67,7 @@ export default function Clientes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"Todos" | "Ativo" | "Inativo">("Todos");
   const [filterRegime, setFilterRegime] = useState<string>("Todos");
+  const [sortBy, setSortBy] = useState<string>("nome");
   const [currentPage, setCurrentPage] = useState(1);
 
   const utils = trpc.useUtils();
@@ -73,15 +76,35 @@ export default function Clientes() {
   const updateMutation = trpc.clientes.update.useMutation();
   const deleteMutation = trpc.clientes.delete.useMutation();
 
-  // Filtrar e buscar clientes
+  // Filtrar, buscar e ordenar clientes
   const filteredClientes = useMemo(() => {
-    return clientes.filter((cliente: any) => {
+    let result = clientes.filter((cliente: any) => {
       const matchSearch = cliente.nome.toLowerCase().includes(searchTerm.toLowerCase());
       const matchStatus = filterStatus === "Todos" || cliente.status === filterStatus;
       const matchRegime = filterRegime === "Todos" || cliente.regime === filterRegime;
       return matchSearch && matchStatus && matchRegime;
     });
-  }, [clientes, searchTerm, filterStatus, filterRegime]);
+
+    // Aplicar ordenação
+    result.sort((a: any, b: any) => {
+      switch (sortBy) {
+        case "nome":
+          return a.nome.localeCompare(b.nome);
+        case "nome-desc":
+          return b.nome.localeCompare(a.nome);
+        case "data-asc":
+          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+        case "data-desc":
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        case "regime":
+          return a.regime.localeCompare(b.regime);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [clientes, searchTerm, filterStatus, filterRegime, sortBy]);
 
   // Paginar clientes
   const totalPages = Math.ceil(filteredClientes.length / ITEMS_PER_PAGE);
@@ -89,6 +112,14 @@ export default function Clientes() {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredClientes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredClientes, currentPage]);
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setFilterStatus("Todos");
+    setFilterRegime("Todos");
+    setSortBy("nome");
+    setCurrentPage(1);
+  };
 
   const handleOpenDialog = (cliente?: any) => {
     if (cliente) {
@@ -151,8 +182,6 @@ export default function Clientes() {
       console.error(error);
     }
   };
-
-  const regimes = ["Simples", "Lucro Presumido", "Lucro Real", "MEI"];
 
   return (
     <div className="space-y-6">
@@ -220,7 +249,6 @@ export default function Clientes() {
                 <label className="text-sm font-medium text-slate-700">Valor Mensalidade (R$) *</label>
                 <Input
                   type="number"
-                  step="0.01"
                   value={form.valor}
                   onChange={(e) => setForm({ ...form, valor: e.target.value })}
                   placeholder="0.00"
@@ -229,16 +257,16 @@ export default function Clientes() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-700">Vencimento (dia) *</label>
-                <Select value={form.vencimento} onValueChange={(value) => setForm({ ...form, vencimento: value })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">Dia 10</SelectItem>
-                    <SelectItem value="20">Dia 20</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium text-slate-700">Vencimento (dia do mês) *</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={form.vencimento}
+                  onChange={(e) => setForm({ ...form, vencimento: e.target.value })}
+                  placeholder="10"
+                  className="mt-1"
+                />
               </div>
 
               <div>
@@ -279,91 +307,41 @@ export default function Clientes() {
         </Dialog>
       </div>
 
-      {/* Filtros e Busca */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <Input
-                placeholder="Buscar cliente..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="pl-10"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setCurrentPage(1);
-                  }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                >
-                  <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
-                </button>
-              )}
-            </div>
-
-            <Select value={filterStatus} onValueChange={(value: any) => {
-              setFilterStatus(value);
-              setCurrentPage(1);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todos">Todos</SelectItem>
-                <SelectItem value="Ativo">Ativo</SelectItem>
-                <SelectItem value="Inativo">Inativo</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filterRegime} onValueChange={(value) => {
-              setFilterRegime(value);
-              setCurrentPage(1);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Regime" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todos">Todos</SelectItem>
-                {regimes.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="text-sm text-slate-600 flex items-center">
-              {filteredClientes.length} cliente(s) encontrado(s)
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filtros Avançados */}
+      <ClienteFilters
+        searchTerm={searchTerm}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          setCurrentPage(1);
+        }}
+        filterStatus={filterStatus}
+        onStatusChange={(value: any) => {
+          setFilterStatus(value);
+          setCurrentPage(1);
+        }}
+        filterRegime={filterRegime}
+        onRegimeChange={(value) => {
+          setFilterRegime(value);
+          setCurrentPage(1);
+        }}
+        sortBy={sortBy}
+        onSortChange={(value) => {
+          setSortBy(value);
+          setCurrentPage(1);
+        }}
+        onClearFilters={handleClearFilters}
+      />
 
       {/* Tabela de Clientes */}
       <Card>
-        <CardHeader>
-          <CardTitle>Lista de Clientes</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-slate-100 rounded animate-pulse" />
-              ))}
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
           ) : paginatedClientes.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-slate-500">
-                {searchTerm || filterStatus !== "Todos" || filterRegime !== "Todos"
-                  ? "Nenhum cliente encontrado com esses filtros"
-                  : "Nenhum cliente cadastrado"}
-              </p>
+            <div className="text-center py-12">
+              <p className="text-slate-600">Nenhum cliente encontrado</p>
             </div>
           ) : (
             <>
@@ -374,7 +352,7 @@ export default function Clientes() {
                       <TableHead>Nome</TableHead>
                       <TableHead>Regime</TableHead>
                       <TableHead>Setor</TableHead>
-                      <TableHead>Mensalidade</TableHead>
+                      <TableHead>Valor (R$)</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -382,20 +360,18 @@ export default function Clientes() {
                   </TableHeader>
                   <TableBody>
                     {paginatedClientes.map((cliente: any) => (
-                      <TableRow key={cliente.id} className="hover:bg-slate-50 transition-colors">
+                      <TableRow key={cliente.id}>
                         <TableCell className="font-medium">{cliente.nome}</TableCell>
                         <TableCell>{cliente.regime}</TableCell>
                         <TableCell>{cliente.setor}</TableCell>
-                        <TableCell>R$ {parseFloat(cliente.valor).toFixed(2)}</TableCell>
+                        <TableCell>R$ {cliente.valor.toFixed(2)}</TableCell>
                         <TableCell>Dia {cliente.vencimento}</TableCell>
                         <TableCell>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all ${
-                              cliente.status === "Ativo"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            cliente.status === "Ativo"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}>
                             {cliente.status}
                           </span>
                         </TableCell>
@@ -448,28 +424,44 @@ export default function Clientes() {
 
               {/* Paginação */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                  <div className="text-sm text-slate-600">
-                    Página {currentPage} de {totalPages}
-                  </div>
-                  <div className="flex gap-2">
+                <div className="flex justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                  >
+                    Primeira
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                  >
+                    Anterior
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      onClick={() => setCurrentPage(page)}
                     >
-                      Anterior
+                      {page}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Próxima
-                    </Button>
-                  </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  >
+                    Próxima
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                  >
+                    Última
+                  </Button>
                 </div>
               )}
             </>

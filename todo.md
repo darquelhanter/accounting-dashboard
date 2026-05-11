@@ -112,3 +112,13 @@
 - [ ] Adicionar aba de operações em lote
 - [ ] Adicionar aba de log de atividades
 - [ ] Implementar testes unitários para admin
+
+
+## Fase 8: Filtros Avan\u00e7ados e Ordena\u00e7\u00e3o para Clientes
+- [ ] Implementar componente de filtros avan\u00e7ados
+- [ ] Adicionar filtro por regime tribut\u00e1rio
+- [ ] Adicionar filtro por status (ativo/inativo)
+- [ ] Adicionar ordena\u00e7\u00e3o por nome, data de cria\u00e7\u00e3o, regime
+- [ ] Integrar filtros com backend (queries otimizadas)
+- [ ] Implementar testes para filtros
+- [ ] Testar e validar funcionalidade completa
