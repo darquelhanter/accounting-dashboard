@@ -183,7 +183,7 @@ export function AlertDetailsModal({
                           {item.clienteNome || item.cliente?.nome || "-"}
                         </TableCell>
                         <TableCell>
-                          R$ {item.valor?.toFixed(2) || "0.00"}
+                          R$ {typeof item.valor === 'number' ? item.valor.toFixed(2) : "0.00"}
                         </TableCell>
                         <TableCell>
                           {item.vencimento
@@ -210,7 +210,7 @@ export function AlertDetailsModal({
                           {item.clienteNome || item.cliente?.nome || "-"}
                         </TableCell>
                         <TableCell>
-                          R$ {item.valor?.toFixed(2) || "0.00"}
+                          R$ {typeof item.valor === 'number' ? item.valor.toFixed(2) : "0.00"}
                         </TableCell>
                         <TableCell>
                           {item.vencimento

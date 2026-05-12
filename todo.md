@@ -148,3 +148,16 @@
 - [x] Adicionar barra de ações para exclusão em massa
 - [x] Todos os 101 testes passando
 - [x] Testar e validar funcionalidade completa
+
+
+## Fase 15: Exclusão em Massa para Checklist e Mensalidades + Correções (CONCLUÍDA)
+- [x] Corrigir erro no modal de notificações (validação de valor)
+- [x] Adicionar exclusão em massa para Checklist
+- [x] Adicionar exclusão em massa para Mensalidades
+- [x] Adicionar procedimento tRPC deleteMany para checklist
+- [x] Adicionar procedimento tRPC deleteMany para mensalidades
+- [x] Adicionar checkboxes de seleção na tabela de checklist
+- [x] Adicionar checkboxes de seleção na tabela de mensalidades
+- [x] Adicionar barra de ações para exclusão em massa em ambas
+- [x] Todos os 101 testes passando
+- [x] Testar e validar funcionalidade completa

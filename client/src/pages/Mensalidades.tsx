@@ -39,6 +39,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, Edit2, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { AlertBadge, AlertRow, AlertIndicator } from "@/components/AlertBadge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 const MESES = [
   "Janeiro",
@@ -68,6 +70,7 @@ export default function Mensalidades() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -131,6 +134,40 @@ export default function Mensalidades() {
       console.error("Erro ao marcar como pago:", error);
     },
   });
+
+  const deleteManyMutation = trpc.mensalidades.deleteMany.useMutation({
+    onSuccess: () => {
+      refetch();
+      setSelectedIds([]);
+      toast.success(`${selectedIds.length} mensalidade(s) deletada(s)!`);
+    },
+    onError: (error) => {
+      toast.error('Erro ao deletar mensalidades');
+      console.error(error);
+    },
+  });
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === paginatedMensalidades.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(paginatedMensalidades.map((item: any) => item.id));
+    }
+  };
+
+  const handleSelectOne = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteMany = async () => {
+    try {
+      await deleteManyMutation.mutateAsync({ ids: selectedIds });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   // Filtered data
   const filteredMensalidades = useMemo(() => {
@@ -447,6 +484,12 @@ export default function Mensalidades() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={selectedIds.length === paginatedMensalidades.length && paginatedMensalidades.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Período</TableHead>
               <TableHead className="text-right">Valor</TableHead>
@@ -490,6 +533,12 @@ export default function Mensalidades() {
                 const cliente = clientes?.find((c) => c.id === m.clienteId);
                 return (
                   <TableRow key={m.id}>
+                    <TableCell className="w-12">
+                      <Checkbox
+                        checked={selectedIds.includes(m.id)}
+                        onCheckedChange={() => handleSelectOne(m.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{cliente?.nome || "N/A"}</TableCell>
                     <TableCell>
                       {m.mes}/{m.ano}
@@ -576,6 +625,45 @@ export default function Mensalidades() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Barra de ações para seleção múltipla */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="text-sm font-medium text-blue-900">
+            {selectedIds.length} mensalidade(s) selecionada(s)
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                disabled={deleteManyMutation.isPending}
+              >
+                <Trash2 className="w-4 h-4" />
+                Deletar Selecionadas
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja deletar {selectedIds.length} mensalidade(s)? Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="flex gap-2 justify-end">
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteMany}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Deletar
+                </AlertDialogAction>
+              </div>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
 
       {/* Pagination */}
       {filteredMensalidades.length > ITEMS_PER_PAGE && (

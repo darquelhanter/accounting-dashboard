@@ -99,4 +99,10 @@ export const checklistRouter = router({
 
       return Promise.all(items.map((item) => createChecklistItem(item)));
     }),
+
+  deleteMany: protectedProcedure
+    .input(z.object({ ids: z.array(z.number()) }))
+    .mutation(async ({ input }) => {
+      return Promise.all(input.ids.map((id) => deleteChecklistItem(id)));
+    }),
 });

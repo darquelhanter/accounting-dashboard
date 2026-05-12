@@ -38,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -88,6 +89,7 @@ export default function ChecklistMensal() {
   const [selectedStatus, setSelectedStatus] = useState<string>("Todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const utils = trpc.useUtils();
   const { data: clientes = [] } = trpc.clientes.list.useQuery();
@@ -100,6 +102,33 @@ export default function ChecklistMensal() {
   const createMutation = trpc.checklist.create.useMutation();
   const updateMutation = trpc.checklist.update.useMutation();
   const deleteMutation = trpc.checklist.delete.useMutation();
+  const deleteManyMutation = trpc.checklist.deleteMany.useMutation();
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === paginatedChecklist.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(paginatedChecklist.map((item: any) => item.id));
+    }
+  };
+
+  const handleSelectOne = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteMany = async () => {
+    try {
+      await deleteManyMutation.mutateAsync({ ids: selectedIds });
+      toast.success(`${selectedIds.length} item(ns) deletado(s)!`);
+      setSelectedIds([]);
+      utils.checklist.listByMonth.invalidate();
+    } catch (error) {
+      toast.error('Erro ao deletar itens');
+      console.error(error);
+    }
+  };
 
   // Filtrar checklist
   const filteredChecklist = useMemo(() => {
@@ -546,6 +575,12 @@ export default function ChecklistMensal() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedIds.length === paginatedChecklist.length && paginatedChecklist.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead>Obrigação</TableHead>
                       <TableHead>Status</TableHead>
@@ -560,6 +595,12 @@ export default function ChecklistMensal() {
                       const obrigacao = obrigacoes.find((o: any) => o.id === item.obrigacaoId);
                       return (
                         <TableRow key={item.id} className="hover:bg-slate-50 transition-colors">
+                          <TableCell className="w-12">
+                            <Checkbox
+                              checked={selectedIds.includes(item.id)}
+                              onCheckedChange={() => handleSelectOne(item.id)}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{cliente?.nome || "N/A"}</TableCell>
                           <TableCell>{obrigacao?.nome || "N/A"}</TableCell>
                           <TableCell>
@@ -625,6 +666,45 @@ export default function ChecklistMensal() {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Barra de ações para seleção múltipla */}
+              {selectedIds.length > 0 && (
+                <div className="flex items-center justify-between mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-sm font-medium text-blue-900">
+                    {selectedIds.length} item(ns) selecionado(s)
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-2"
+                        disabled={deleteManyMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Deletar Selecionados
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja deletar {selectedIds.length} item(ns)? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="flex gap-2 justify-end">
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteMany}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Deletar
+                        </AlertDialogAction>
+                      </div>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
 
               {/* Paginação */}
               {totalPages > 1 && (

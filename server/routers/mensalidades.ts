@@ -139,4 +139,11 @@ export const mensalidadesRouter = router({
         status: "Atrasado",
       });
     }),
+
+  // Deletar múltiplas mensalidades
+  deleteMany: protectedProcedure
+    .input(z.object({ ids: z.array(z.number()) }))
+    .mutation(async ({ input }) => {
+      return Promise.all(input.ids.map((id) => deleteMensalidade(id)));
+    }),
 });
