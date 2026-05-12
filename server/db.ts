@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { eq, and } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -151,9 +151,11 @@ export async function getChecklistByUserAndMonth(userId: number, mes: string, an
   if (!db) return [];
   return db.select().from(checklistObrigacoes)
     .where(
-      eq(checklistObrigacoes.userId, userId) &&
-      eq(checklistObrigacoes.mes, mes) &&
-      eq(checklistObrigacoes.ano, ano)
+      and(
+        eq(checklistObrigacoes.userId, userId),
+        eq(checklistObrigacoes.mes, mes),
+        eq(checklistObrigacoes.ano, ano)
+      )
     );
 }
 
@@ -162,9 +164,11 @@ export async function getChecklistByCliente(clienteId: number, mes: string, ano:
   if (!db) return [];
   return db.select().from(checklistObrigacoes)
     .where(
-      eq(checklistObrigacoes.clienteId, clienteId) &&
-      eq(checklistObrigacoes.mes, mes) &&
-      eq(checklistObrigacoes.ano, ano)
+      and(
+        eq(checklistObrigacoes.clienteId, clienteId),
+        eq(checklistObrigacoes.mes, mes),
+        eq(checklistObrigacoes.ano, ano)
+      )
     );
 }
 
@@ -216,9 +220,11 @@ export async function getMensalidadesByUserAndMonth(userId: number, mes: string,
   if (!db) return [];
   return db.select().from(controleMensalidades)
     .where(
-      eq(controleMensalidades.userId, userId) &&
-      eq(controleMensalidades.mes, mes) &&
-      eq(controleMensalidades.ano, ano)
+      and(
+        eq(controleMensalidades.userId, userId),
+        eq(controleMensalidades.mes, mes),
+        eq(controleMensalidades.ano, ano)
+      )
     );
 }
 
