@@ -228,7 +228,7 @@ export default function ChecklistMensal() {
         id,
         data: { status: newStatus as any },
       });
-      utils.checklist.listByMonth.invalidate();
+      utils.checklist.listByMonth.invalidate({ mes: selectedMes, ano: selectedAno });
       toast.success("Status atualizado!");
     } catch (error) {
       toast.error("Erro ao atualizar status");

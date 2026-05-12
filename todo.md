@@ -161,3 +161,9 @@
 - [x] Adicionar barra de ações para exclusão em massa em ambas
 - [x] Todos os 101 testes passando
 - [x] Testar e validar funcionalidade completa
+
+
+## Correção: Status do Checklist Salvo Mês a Mês
+- [x] Corrigir invalidate em ChecklistMensal para passar parâmetros específicos (mes, ano)
+- [x] Garantir que alterações de status sejam salvas apenas para o mês/ano selecionado
+- [x] Todos os 101 testes passando
