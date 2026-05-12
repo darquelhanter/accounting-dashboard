@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Trash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
@@ -39,6 +39,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ClienteFilters } from "@/components/ClienteFilters";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ClienteForm {
   nome: string;
@@ -70,12 +71,40 @@ export default function Clientes() {
   const [filterRegime, setFilterRegime] = useState<string>("Todos");
   const [sortBy, setSortBy] = useState<string>("nome");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const utils = trpc.useUtils();
   const { data: clientes = [], isLoading } = trpc.clientes.list.useQuery();
   const createMutation = trpc.clientes.create.useMutation();
   const updateMutation = trpc.clientes.update.useMutation();
   const deleteMutation = trpc.clientes.delete.useMutation();
+  const deleteManyMutation = trpc.clientes.deleteMany.useMutation();
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === paginatedClientes.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(paginatedClientes.map((c: any) => c.id));
+    }
+  };
+
+  const handleSelectOne = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteMany = async () => {
+    try {
+      await deleteManyMutation.mutateAsync({ ids: selectedIds });
+      toast.success(`${selectedIds.length} cliente(s) deletado(s)!`);
+      setSelectedIds([]);
+      utils.clientes.list.invalidate();
+    } catch (error) {
+      toast.error('Erro ao deletar clientes');
+      console.error(error);
+    }
+  };
 
   // Filtrar, buscar e ordenar clientes
   const filteredClientes = useMemo(() => {
@@ -372,6 +401,12 @@ export default function Clientes() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedIds.length === paginatedClientes.length && paginatedClientes.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Regime</TableHead>
                       <TableHead>Setor</TableHead>
@@ -385,6 +420,12 @@ export default function Clientes() {
                   <TableBody>
                     {paginatedClientes.map((cliente: any) => (
                       <TableRow key={cliente.id}>
+                        <TableCell className="w-12">
+                          <Checkbox
+                            checked={selectedIds.includes(cliente.id)}
+                            onCheckedChange={() => handleSelectOne(cliente.id)}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{cliente.nome}</TableCell>
                         <TableCell>
                           <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
@@ -460,6 +501,45 @@ export default function Clientes() {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Barra de ações para seleção múltipla */}
+              {selectedIds.length > 0 && (
+                <div className="flex items-center justify-between mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-sm font-medium text-blue-900">
+                    {selectedIds.length} cliente(s) selecionado(s)
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-2"
+                        disabled={deleteManyMutation.isPending}
+                      >
+                        <Trash className="w-4 h-4" />
+                        Deletar Selecionados
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja deletar {selectedIds.length} cliente(s)? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="flex gap-2 justify-end">
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteMany}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Deletar
+                        </AlertDialogAction>
+                      </div>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
 
               {/* Paginação */}
               {totalPages > 1 && (

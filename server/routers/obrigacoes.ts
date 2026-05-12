@@ -59,6 +59,28 @@ export const obrigacoesRouter = router({
       return deleteObrigacao(input.id);
     }),
 
+  deleteMany: protectedProcedure
+    .input(z.object({ ids: z.array(z.number()) }))
+    .mutation(async ({ input }) => {
+      if (input.ids.length === 0) {
+        throw new Error('Nenhuma obrigacao selecionada');
+      }
+      const deletadas = [];
+      for (const id of input.ids) {
+        try {
+          await deleteObrigacao(id);
+          deletadas.push(id);
+        } catch (error) {
+          console.error(`Erro ao deletar obrigacao ${id}:`, error);
+        }
+      }
+      return {
+        sucesso: true,
+        mensagem: `${deletadas.length} obrigacao(oes) deletada(s)`,
+        deletadas,
+      };
+    }),
+
   seedPadrao: protectedProcedure.mutation(async ({ ctx }) => {
     const obrigacoesPadrao = [
       {

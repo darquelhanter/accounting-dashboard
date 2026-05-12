@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2, Search, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Search, X, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { AlertBadge, AlertRow } from "@/components/AlertBadge";
 import {
@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { SeedObrigacoesButton } from "@/components/SeedObrigacoesButton";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ObrigacaoForm {
   nome: string;
@@ -72,6 +73,7 @@ export default function Obrigacoes() {
   const [filterPeriodicidade, setFilterPeriodicidade] = useState<string>("Todos");
   const [filterRegime, setFilterRegime] = useState<string>("Todos");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const utils = trpc.useUtils();
   const { data: obrigacoes = [], isLoading } = trpc.obrigacoes.list.useQuery();
@@ -79,6 +81,33 @@ export default function Obrigacoes() {
   const createMutation = trpc.obrigacoes.create.useMutation();
   const updateMutation = trpc.obrigacoes.update.useMutation();
   const deleteMutation = trpc.obrigacoes.delete.useMutation();
+  const deleteManyMutation = trpc.obrigacoes.deleteMany.useMutation();
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === paginatedObrigacoes.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(paginatedObrigacoes.map((o: any) => o.id));
+    }
+  };
+
+  const handleSelectOne = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteMany = async () => {
+    try {
+      await deleteManyMutation.mutateAsync({ ids: selectedIds });
+      toast.success(`${selectedIds.length} obrigacao(oes) deletada(s)!`);
+      setSelectedIds([]);
+      utils.obrigacoes.list.invalidate();
+    } catch (error) {
+      toast.error('Erro ao deletar obrigacoes');
+      console.error(error);
+    }
+  };
 
   // Filtrar e buscar obrigações
   const filteredObrigacoes = useMemo(() => {
@@ -420,6 +449,12 @@ export default function Obrigacoes() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedIds.length === paginatedObrigacoes.length && paginatedObrigacoes.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Categoria</TableHead>
                       <TableHead>Periodicidade</TableHead>
@@ -431,6 +466,12 @@ export default function Obrigacoes() {
                   <TableBody>
                     {paginatedObrigacoes.map((obrigacao: any) => (
                       <TableRow key={obrigacao.id} className="hover:bg-slate-50 transition-colors">
+                        <TableCell className="w-12">
+                          <Checkbox
+                            checked={selectedIds.includes(obrigacao.id)}
+                            onCheckedChange={() => handleSelectOne(obrigacao.id)}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{obrigacao.nome}</TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -491,6 +532,45 @@ export default function Obrigacoes() {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Barra de ações para seleção múltipla */}
+              {selectedIds.length > 0 && (
+                <div className="flex items-center justify-between mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-sm font-medium text-blue-900">
+                    {selectedIds.length} obrigação(ões) selecionada(s)
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-2"
+                        disabled={deleteManyMutation.isPending}
+                      >
+                        <Trash className="w-4 h-4" />
+                        Deletar Selecionadas
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja deletar {selectedIds.length} obrigação(ões)? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="flex gap-2 justify-end">
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteMany}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Deletar
+                        </AlertDialogAction>
+                      </div>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
 
               {/* Paginação */}
               {totalPages > 1 && (

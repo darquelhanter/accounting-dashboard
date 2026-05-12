@@ -77,10 +77,31 @@ export const clientesRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const result = await deleteCliente(input.id);
-      // Normalizar valor para número
       return {
         ...result,
         valor: typeof (result as any).valor === 'number' ? (result as any).valor : Number((result as any).valor),
+      };
+    }),
+
+  deleteMany: protectedProcedure
+    .input(z.object({ ids: z.array(z.number()) }))
+    .mutation(async ({ input }) => {
+      if (input.ids.length === 0) {
+        throw new Error('Nenhum cliente selecionado');
+      }
+      const deletados = [];
+      for (const id of input.ids) {
+        try {
+          await deleteCliente(id);
+          deletados.push(id);
+        } catch (error) {
+          console.error(`Erro ao deletar cliente ${id}:`, error);
+        }
+      }
+      return {
+        sucesso: true,
+        mensagem: `${deletados.length} cliente(s) deletado(s)`,
+        deletados,
       };
     }),
 });
