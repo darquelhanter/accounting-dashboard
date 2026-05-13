@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -87,6 +88,64 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+// Autenticação Local
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return undefined;
+  }
+
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createLocalUser(email: string, name: string, password: string) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  // Verificar se email já existe
+  const existingUser = await getUserByEmail(email);
+  if (existingUser) {
+    throw new Error("Email já cadastrado");
+  }
+
+  // Hash da senha
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  // Criar usuário com openId gerado
+  const openId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  const result = await db.insert(users).values({
+    openId,
+    email,
+    name,
+    passwordHash,
+    loginMethod: "local",
+    role: "user",
+    lastSignedIn: new Date(),
+  });
+
+  return getUserByEmail(email);
+}
+
+export async function verifyPassword(email: string, password: string) {
+  const user = await getUserByEmail(email);
+  if (!user || !user.passwordHash) {
+    return null;
+  }
+
+  const isValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isValid) {
+    return null;
+  }
+
+  return user;
 }
 
 // Clientes

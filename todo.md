@@ -174,3 +174,12 @@
 - [x] Atualizar procedimento tRPC create para suportar batch
 - [x] Adicionar testes unitários
 - [x] Testar e validar funcionalidade completa
+
+## Fase 17: Autenticação Customizada com Email/Senha (CONCLUÍDA)
+- [x] Adicionar campos de senha ao schema de usuários
+- [x] Implementar procedimentos tRPC para registro e login com email/senha
+- [x] Criar página de login customizada com opção de Google
+- [x] Criar página de registro de novo usuário
+- [x] Implementar validação de email e força de senha
+- [x] Adicionar testes unitários
+- [x] Testar e validar funcionalidade completa

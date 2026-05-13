@@ -12,12 +12,16 @@ import Mensalidades from "./pages/Mensalidades";
 import Admin from "./pages/Admin";
 import NotificacaoConfigs from "./pages/NotificacaoConfigs";
 import DashboardLayout from "./components/DashboardLayout";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/login"} component={Login} />
+      <Route path={"/register"} component={Register} />
       <Route path={"/clientes"} component={() => <DashboardLayout><Clientes /></DashboardLayout>} />
       <Route path={"/obrigacoes"} component={() => <DashboardLayout><Obrigacoes /></DashboardLayout>} />
       <Route path={"/checklist"} component={() => <DashboardLayout><ChecklistMensal /></DashboardLayout>} />

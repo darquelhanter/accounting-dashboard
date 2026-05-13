@@ -43,6 +43,13 @@
       "when": 1778501033761,
       "tag": "0005_smart_micromax",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1778694155390,
+      "tag": "0006_chemical_jubilee",
+      "breakpoints": true
     }
   ]
 }

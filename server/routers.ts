@@ -1,4 +1,3 @@
-import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
@@ -10,6 +9,11 @@ import { alertasRouter } from "./routers/alertas";
 import { adminRouter } from "./routers/admin";
 import { notificacoesRouter } from "./routers/notificacoes";
 import { notificacaoConfigsRouter } from "./routers/notificacaoConfigs";
+import { z } from "zod";
+import * as db from "./db";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { sdk } from "./_core/sdk";
+import { TRPCError } from "@trpc/server";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -31,6 +35,77 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email("Email inválido"),
+        name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+        password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const user = await db.createLocalUser(input.email, input.name, input.password);
+          if (!user) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao criar usuário" });
+          }
+
+          // Criar sessão
+          const sessionToken = await sdk.createSessionToken(user.openId || "", {
+            name: user.name || "",
+            expiresInMs: ONE_YEAR_MS,
+          });
+
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+          return { success: true, user };
+        } catch (error: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.message || "Erro ao registrar usuário",
+          });
+        }
+      }),
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email("Email inválido"),
+        password: z.string().min(1, "Senha é obrigatória"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const user = await db.verifyPassword(input.email, input.password);
+          if (!user) {
+            throw new TRPCError({
+              code: "UNAUTHORIZED",
+              message: "Email ou senha inválidos",
+            });
+          }
+
+          // Atualizar lastSignedIn
+          await db.upsertUser({
+            openId: user.openId,
+            lastSignedIn: new Date(),
+          });
+
+          // Criar sessão
+          const sessionToken = await sdk.createSessionToken(user.openId || "", {
+            name: user.name || "",
+            expiresInMs: ONE_YEAR_MS,
+          });
+
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+          return { success: true, user };
+        } catch (error: any) {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Erro ao fazer login",
+          });
+        }
+      }),
   }),
 
   // TODO: add feature routers here, e.g.

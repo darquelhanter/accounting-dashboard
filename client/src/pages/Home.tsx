@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, FileText, CheckSquare, DollarSign, ArrowRight, BarChart3 } from "lucide-react";
+import { ArrowRight, BarChart3, FileText, DollarSign, CheckSquare, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { useState, useMemo } from "react";
@@ -24,48 +24,8 @@ export default function Home() {
   });
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-        <div className="max-w-md text-center">
-          <div className="mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-              <BarChart3 className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Controle Contábil</h1>
-            <p className="text-gray-600">Gerencie seus clientes, obrigações e mensalidades em um único lugar</p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Bem-vindo!</h2>
-            <p className="text-gray-600 mb-6">
-              Faça login para acessar seu dashboard de gestão contábil e começar a controlar seu escritório.
-            </p>
-            <Button 
-              onClick={() => window.location.href = getLoginUrl()}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              size="lg"
-            >
-              Fazer Login
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="text-center">
-              <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-              <p className="text-gray-600">Gestão de Clientes</p>
-            </div>
-            <div className="text-center">
-              <FileText className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-              <p className="text-gray-600">Obrigações</p>
-            </div>
-            <div className="text-center">
-              <DollarSign className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-              <p className="text-gray-600">Mensalidades</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    navigate("/login");
+    return null;
   }
 
   return (
