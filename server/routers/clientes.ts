@@ -5,7 +5,6 @@ import {
   createCliente,
   updateCliente,
   deleteCliente,
-  linkObrigacoesByRegime,
 } from "../db";
 
 const clienteSchema = z.object({
@@ -104,11 +103,5 @@ export const clientesRouter = router({
         mensagem: `${deletados.length} cliente(s) deletado(s)`,
         deletados,
       };
-    }),
-
-  linkObrigacoes: protectedProcedure
-    .input(z.object({ clienteId: z.number(), regime: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      return await linkObrigacoesByRegime(input.clienteId, ctx.user.id, input.regime);
     }),
 });

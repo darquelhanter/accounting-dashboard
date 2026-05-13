@@ -48,16 +48,48 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
     textFields.forEach(assignNullable);
 
-    await db
-      .insert(users)
-      .values(values)
-      .onDuplicateKeyUpdate({ set: updateSet });
+    if (user.lastSignedIn !== undefined) {
+      values.lastSignedIn = user.lastSignedIn;
+      updateSet.lastSignedIn = user.lastSignedIn;
+    }
+    if (user.role !== undefined) {
+      values.role = user.role;
+      updateSet.role = user.role;
+    } else if (user.openId === ENV.ownerOpenId) {
+      values.role = 'admin';
+      updateSet.role = 'admin';
+    }
+
+    if (!values.lastSignedIn) {
+      values.lastSignedIn = new Date();
+    }
+
+    if (Object.keys(updateSet).length === 0) {
+      updateSet.lastSignedIn = new Date();
+    }
+
+    await db.insert(users).values(values).onDuplicateKeyUpdate({
+      set: updateSet,
+    });
   } catch (error) {
-    console.error("[Database] Error upserting user:", error);
+    console.error("[Database] Failed to upsert user:", error);
     throw error;
   }
 }
 
+export async function getUserByOpenId(openId: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user: database not available");
+    return undefined;
+  }
+
+  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// Clientes
 export async function getClientesByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -107,7 +139,7 @@ export async function deleteObrigacao(id: number) {
   return await db.delete(obrigacoes).where(eq(obrigacoes.id, id));
 }
 
-// Checklist
+// Checklist Obrigações
 export async function getChecklistByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -158,11 +190,29 @@ export async function deleteChecklistItem(id: number) {
   return await db.delete(checklistObrigacoes).where(eq(checklistObrigacoes.id, id));
 }
 
-// Mensalidades
+// Controle Mensalidades
 export async function getMensalidadesByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+}
+
+export async function createMensalidade(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(controleMensalidades).values(data);
+}
+
+export async function updateMensalidade(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.update(controleMensalidades).set(data).where(eq(controleMensalidades.id, id));
+}
+
+export async function deleteMensalidade(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(controleMensalidades).where(eq(controleMensalidades.id, id));
 }
 
 export async function getMensalidadesByUserAndMonth(userId: number, mes: string, ano: number) {
@@ -188,22 +238,102 @@ export async function getMensalidadesByCliente(clienteId: number, mes?: string, 
   return result;
 }
 
-export async function createMensalidade(data: any) {
+export async function getMensalidadesByStatus(userId: number, status: string) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return db.insert(controleMensalidades).values(data);
+  if (!db) return [];
+  const all = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  return all.filter(m => m.status === status);
 }
 
-export async function updateMensalidade(id: number, data: any) {
+export async function getMensalidadesPendentes(userId: number) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return await db.update(controleMensalidades).set(data).where(eq(controleMensalidades.id, id));
+  if (!db) return [];
+  const all = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  return all.filter(m => m.status === "Pendente" || m.status === "Atrasado");
 }
 
-export async function deleteMensalidade(id: number) {
+export async function getTotalMensalidadesByUser(userId: number) {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return await db.delete(controleMensalidades).where(eq(controleMensalidades.id, id));
+  if (!db) return { total: 0, pago: 0, pendente: 0, atrasado: 0 };
+  const mensalidades = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  
+  let total = 0;
+  let pago = 0;
+  let pendente = 0;
+  let atrasado = 0;
+  
+  for (const m of mensalidades) {
+    const valor = parseFloat(m.valor.toString());
+    total += valor;
+    if (m.status === "Pago") pago += valor;
+    if (m.status === "Pendente") pendente += valor;
+    if (m.status === "Atrasado") atrasado += valor;
+  }
+  
+  return { total, pago, pendente, atrasado };
+}
+
+
+// Funções de Alertas
+export async function getObrigacoesProximasVencimento(userId: number, diasAntecedencia: number = 7) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const obrigacoesList = await db.select().from(obrigacoes).where(eq(obrigacoes.userId, userId));
+  
+  const hoje = new Date();
+  const proximosDias = new Date(hoje.getTime() + diasAntecedencia * 24 * 60 * 60 * 1000);
+  
+  return obrigacoesList.filter(obrigacao => {
+    if (!obrigacao.vencimento) return false;
+    
+    const diaVencimento = obrigacao.vencimento;
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    let dataVencimento = new Date(anoAtual, mesAtual, diaVencimento);
+    
+    // Se o vencimento já passou este mês, considerar próximo mês
+    if (dataVencimento < hoje) {
+      dataVencimento = new Date(anoAtual, mesAtual + 1, diaVencimento);
+    }
+    
+    return dataVencimento <= proximosDias && dataVencimento >= hoje;
+  });
+}
+
+export async function getMensalidadesAtrasadas(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const mensalidades = await db.select().from(controleMensalidades)
+    .where(eq(controleMensalidades.userId, userId));
+  
+  return mensalidades.filter(m => m.status === "Atrasado");
+}
+
+export async function getMensalidadesPendentesProximas(userId: number, diasAntecedencia: number = 3) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const mensalidades = await db.select().from(controleMensalidades)
+    .where(eq(controleMensalidades.userId, userId));
+  
+  const hoje = new Date();
+  const proximosDias = new Date(hoje.getTime() + diasAntecedencia * 24 * 60 * 60 * 1000);
+  
+  return mensalidades.filter(m => {
+    if (m.status !== "Pendente") return false;
+    
+    // Considerar mensalidades do mês atual e próximo mês como próximas
+    const mesAtual = hoje.getMonth() + 1;
+    const anoAtual = hoje.getFullYear();
+    
+    const mesNum = parseInt(m.mes.split('/')[0] || '0');
+    const anoNum = parseInt(m.mes.split('/')[1] || '0');
+    
+    return (mesNum === mesAtual || mesNum === mesAtual + 1) && anoNum === anoAtual;
+  });
 }
 
 export async function getAlertasSumario(userId: number) {
@@ -219,57 +349,6 @@ export async function getAlertasSumario(userId: number) {
     mensalidadesAtrasadas: mensalidadesAtrasadas.length,
     mensalidadesPendentes: mensalidadesPendentes.length,
   };
-}
-
-// Alertas
-export async function getObrigacoesProximasVencimento(userId: number, dias: number = 7) {
-  const db = await getDb();
-  if (!db) return [];
-
-  const clientesList = await db.select().from(clientes).where(eq(clientes.userId, userId));
-  const obrigacoesList = await db.select().from(obrigacoes).where(eq(obrigacoes.userId, userId));
-
-  const hoje = new Date();
-  const proximosDias = new Date(hoje.getTime() + dias * 24 * 60 * 60 * 1000);
-
-  return obrigacoesList.filter((obrigacao: any) => {
-    if (!obrigacao.vencimento) return false;
-
-    const dataVencimento = parseInt(obrigacao.vencimento);
-    const diaAtual = hoje.getDate();
-    const diaProximo = proximosDias.getDate();
-
-    return dataVencimento <= proximosDias.getDate() && dataVencimento >= hoje.getDate();
-  });
-}
-
-export async function getMensalidadesAtrasadas(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
-
-  const mensalidades = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
-
-  return mensalidades.filter((m: any) => m.status === "Atrasado");
-}
-
-export async function getMensalidadesPendentesProximas(userId: number, dias: number = 3) {
-  const db = await getDb();
-  if (!db) return [];
-
-  const mensalidades = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
-
-  const hoje = new Date();
-  const mesAtual = hoje.getMonth() + 1;
-  const anoAtual = hoje.getFullYear();
-
-  return mensalidades.filter((m: any) => {
-    if (m.status !== "Pendente") return false;
-    
-    const mesNum = parseInt(m.mes.split('/')[0] || '0');
-    const anoNum = parseInt(m.mes.split('/')[1] || '0');
-    
-    return (mesNum === mesAtual || mesNum === mesAtual + 1) && anoNum === anoAtual;
-  });
 }
 
 
@@ -351,144 +430,4 @@ export async function getAllNotificacaoConfigs() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(notificacaoConfigs).where(eq(notificacaoConfigs.ativo, true));
-}
-
-// Vinculação automática de obrigações por regime
-export async function linkObrigacoesByRegime(clienteId: number, userId: number, regime: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    // Buscar todas as obrigacoes
-    const todasAsObrigacoes = await db
-      .select()
-      .from(obrigacoes);
-    
-    // Filtrar por regime (incluindo "Todos")
-    const obrigacoesDoRegime = todasAsObrigacoes.filter((o: any) => o.regime === regime || o.regime === "Todos");
-    const todasAsObrigacoesFiltered = obrigacoesDoRegime;
-
-    if (todasAsObrigacoesFiltered.length === 0) {
-      return { sucesso: true, criadas: 0, mensagem: "Nenhuma obrigação encontrada para este regime" };
-    }
-
-    let criadas = 0;
-    const anoAtual = new Date().getFullYear();
-
-    // Para cada obrigacao do regime
-    for (const obrigacao of todasAsObrigacoesFiltered) {
-      // Se for mensal, criar entradas para todos os 12 meses
-      if (obrigacao.periodicidade === "Mensal") {
-        for (let mes = 1; mes <= 12; mes++) {
-          const mesPadrao = mes.toString().padStart(2, "0");
-          
-          // Verificar se já existe
-          const existe = await db
-            .select()
-            .from(checklistObrigacoes)
-            .where(
-              and(
-                eq(checklistObrigacoes.clienteId, clienteId),
-                eq(checklistObrigacoes.obrigacaoId, obrigacao.id),
-                eq(checklistObrigacoes.mes, mesPadrao),
-                eq(checklistObrigacoes.ano, anoAtual)
-              )
-            );
-
-          if (existe.length === 0) {
-            await db.insert(checklistObrigacoes).values({
-              userId,
-              clienteId,
-              obrigacaoId: obrigacao.id,
-              mes: mesPadrao,
-              ano: anoAtual,
-              status: "Pendente",
-              responsavel: null,
-            });
-            criadas++;
-          }
-        }
-      } else {
-        // Se for anual ou outro, criar apenas uma entrada
-        const existe = await db
-          .select()
-          .from(checklistObrigacoes)
-          .where(
-            and(
-              eq(checklistObrigacoes.clienteId, clienteId),
-              eq(checklistObrigacoes.obrigacaoId, obrigacao.id),
-              eq(checklistObrigacoes.ano, anoAtual)
-            )
-          );
-
-        if (existe.length === 0) {
-          await db.insert(checklistObrigacoes).values({
-            userId,
-            clienteId,
-            obrigacaoId: obrigacao.id,
-            mes: "01",
-            ano: anoAtual,
-            status: "Pendente",
-            responsavel: null,
-          });
-          criadas++;
-        }
-      }
-    }
-
-    return {
-      sucesso: true,
-      criadas,
-      mensagem: `${criadas} obrigação(ões) vinculada(s) ao cliente`,
-    };
-  } catch (error) {
-    console.error("[Database] Error linking obligations:", error);
-    throw error;
-  }
-}
-
-
-export async function getMensalidadesByStatus(userId: number, status: string) {
-  const db = await getDb();
-  if (!db) return [];
-  const result = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
-  return result.filter((m: any) => m.status === status);
-}
-
-
-export async function getMensalidadesPendentes(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  const result = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
-  return result.filter((m: any) => m.status === "Pendente");
-}
-
-export async function getTotalMensalidadesByUser(userId: number) {
-  const db = await getDb();
-  if (!db) return { total: 0, pago: 0, pendente: 0, atrasado: 0 };
-  const result = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
-  
-  let total = 0;
-  let pago = 0;
-  let pendente = 0;
-  let atrasado = 0;
-  
-  for (const m of result) {
-    const valor = typeof m.valor === 'string' ? parseFloat(m.valor) : m.valor;
-    total += valor || 0;
-    
-    if (m.status === 'Pago') pago += valor || 0;
-    else if (m.status === 'Pendente') pendente += valor || 0;
-    else if (m.status === 'Atrasado') atrasado += valor || 0;
-  }
-  
-  return { total, pago, pendente, atrasado };
-}
-
-
-export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result.length > 0 ? result[0] : null;
 }
