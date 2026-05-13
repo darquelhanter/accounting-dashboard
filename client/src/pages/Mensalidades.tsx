@@ -79,6 +79,7 @@ export default function Mensalidades() {
     status: "Pendente" as "Pago" | "Pendente" | "Atrasado",
     dataPagamento: "",
   });
+  const [mesesSelecionados, setMesesSelecionados] = useState<number[]>([]);
 
   // Queries
   const { data: mensalidades, isLoading, refetch } = trpc.mensalidades.listByMonth.useQuery({
@@ -197,6 +198,7 @@ export default function Mensalidades() {
       status: "Pendente",
       dataPagamento: "",
     });
+    setMesesSelecionados([]);
     setEditingId(null);
   };
 
@@ -221,15 +223,26 @@ export default function Mensalidades() {
         valor: formData.valor,
         dataPagamento: formData.dataPagamento ? new Date(formData.dataPagamento) : undefined,
       });
+      toast.success('Mensalidade atualizada com sucesso!');
     } else {
-      await createMutation.mutateAsync({
-        clienteId: parseInt(formData.clienteId),
-        mes: selectedMes,
-        ano: selectedAno,
-        valor: formData.valor,
-        status: formData.status,
-        dataPagamento: formData.dataPagamento ? new Date(formData.dataPagamento) : undefined,
-      });
+      const mesesParaCriar = mesesSelecionados.length > 0 ? mesesSelecionados : [MESES.indexOf(selectedMes)];
+      let totalCriados = 0;
+      
+      for (const mesIndex of mesesParaCriar) {
+        await createMutation.mutateAsync({
+          clienteId: parseInt(formData.clienteId),
+          mes: MESES[mesIndex],
+          ano: selectedAno,
+          valor: formData.valor,
+          status: formData.status,
+          dataPagamento: formData.dataPagamento ? new Date(formData.dataPagamento) : undefined,
+        });
+        totalCriados++;
+      }
+      
+      if (totalCriados > 0) {
+        toast.success(`${totalCriados} mensalidade(s) criada(s) com sucesso!`);
+      }
     }
   };
 
@@ -334,6 +347,28 @@ export default function Mensalidades() {
                     <SelectItem value="Atrasado">Atrasado</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Selecione os Meses *</label>
+                <div className="grid grid-cols-3 gap-2 mt-2 p-3 border rounded-lg bg-slate-50">
+                  {MESES.map((mes, index) => (
+                    <div key={mes} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`mes-${index}`}
+                        checked={mesesSelecionados.includes(index)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setMesesSelecionados([...mesesSelecionados, index]);
+                          } else {
+                            setMesesSelecionados(mesesSelecionados.filter(m => m !== index));
+                          }
+                        }}
+                      />
+                      <label htmlFor={`mes-${index}`} className="text-sm cursor-pointer">{mes.slice(0, 3)}</label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>

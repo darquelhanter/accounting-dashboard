@@ -167,3 +167,10 @@
 - [x] Corrigir invalidate em ChecklistMensal para passar parâmetros específicos (mes, ano)
 - [x] Garantir que alterações de status sejam salvas apenas para o mês/ano selecionado
 - [x] Todos os 101 testes passando
+
+## Fase 16: Múltipla Seleção de Meses para Mensalidades (CONCLUÍDA)
+- [x] Adicionar seletor de meses no formulário de criação de mensalidades
+- [x] Implementar lógica para criar múltiplas entradas (uma por mês selecionado)
+- [x] Atualizar procedimento tRPC create para suportar batch
+- [x] Adicionar testes unitários
+- [x] Testar e validar funcionalidade completa
