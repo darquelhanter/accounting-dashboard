@@ -167,3 +167,13 @@
 - [x] Corrigir invalidate em ChecklistMensal para passar parâmetros específicos (mes, ano)
 - [x] Garantir que alterações de status sejam salvas apenas para o mês/ano selecionado
 - [x] Todos os 101 testes passando
+
+
+## Fase 16: Vinculação Automática de Obrigações por Regime (EM PROGRESSO)
+- [ ] Analisar e planejar vinculação automática
+- [ ] Criar procedimento tRPC para vincular obrigações por regime
+- [ ] Integrar vinculação no cadastro de cliente
+- [ ] Criar entradas no checklist para todos os meses (se mensal)
+- [ ] Implementar validações e tratamento de erros
+- [ ] Implementar testes unitários
+- [ ] Testar e validar funcionalidade completa
