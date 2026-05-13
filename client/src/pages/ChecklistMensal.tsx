@@ -56,6 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
 interface ChecklistForm {
   clienteId: number;
   obrigacaoId: number;
+  obrigacaoIds?: number[];
   mes: string;
   ano: number;
   status: "Feito" | "Pendente" | "Em Progresso" | "Bloqueado" | "N/A";
@@ -69,6 +70,7 @@ interface ChecklistForm {
 const initialForm: ChecklistForm = {
   clienteId: 0,
   obrigacaoId: 0,
+  obrigacaoIds: [],
   mes: MESES[new Date().getMonth()],
   ano: new Date().getFullYear(),
   status: "Pendente",
@@ -181,8 +183,8 @@ export default function ChecklistMensal() {
   };
 
   const handleSave = async () => {
-    if (!form.clienteId || !form.obrigacaoId) {
-      toast.error("Cliente e Obrigação são obrigatórios");
+    if (!form.clienteId || (!form.obrigacaoId && (!form.obrigacaoIds || form.obrigacaoIds.length === 0))) {
+      toast.error("Cliente e Obrigação(s) são obrigatórios");
       return;
     }
 
@@ -203,14 +205,21 @@ export default function ChecklistMensal() {
         toast.success("Item atualizado com sucesso!");
       } else {
         const mesesSelecionados = form.mesesSelecionados || [];
-        for (const mesIndex of mesesSelecionados) {
-          await createMutation.mutateAsync({
-            ...form,
-            mes: MESES[mesIndex],
-            totalHoras: form.totalHoras ? parseFloat(form.totalHoras) : undefined,
-          });
+        const obrigacaoIds = form.obrigacaoIds && form.obrigacaoIds.length > 0 ? form.obrigacaoIds : [form.obrigacaoId];
+        let totalCriados = 0;
+        
+        for (const obrigacaoId of obrigacaoIds) {
+          for (const mesIndex of mesesSelecionados) {
+            await createMutation.mutateAsync({
+              ...form,
+              obrigacaoId: obrigacaoId,
+              mes: MESES[mesIndex],
+              totalHoras: form.totalHoras ? parseFloat(form.totalHoras) : undefined,
+            });
+            totalCriados++;
+          }
         }
-        toast.success(`${mesesSelecionados.length} item(ns) criado(s) com sucesso!`);
+        toast.success(`${totalCriados} item(ns) criado(s) com sucesso!`);
       }
       utils.checklist.listByMonth.invalidate();
       setIsOpen(false);
@@ -301,22 +310,33 @@ export default function ChecklistMensal() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-700">Obrigação *</label>
-                <Select 
-                  value={form.obrigacaoId.toString()} 
-                  onValueChange={(value) => setForm({ ...form, obrigacaoId: parseInt(value) })}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Selecione uma obrigação" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {obrigacoes.map((o: any) => (
-                      <SelectItem key={o.id} value={o.id.toString()}>
+                <label className="text-sm font-medium text-slate-700">Obrigações * (Selecione uma ou mais)</label>
+                <div className="mt-1 border border-slate-300 rounded-md p-3 max-h-48 overflow-y-auto bg-white">
+                  {obrigacoes.map((o: any) => (
+                    <div key={o.id} className="flex items-center mb-2">
+                      <input
+                        type="checkbox"
+                        id={`obrigacao-${o.id}`}
+                        checked={(form.obrigacaoIds || []).includes(o.id)}
+                        onChange={(e) => {
+                          const ids = form.obrigacaoIds || [];
+                          if (e.target.checked) {
+                            setForm({ ...form, obrigacaoIds: [...ids, o.id] });
+                          } else {
+                            setForm({ ...form, obrigacaoIds: ids.filter(id => id !== o.id) });
+                          }
+                        }}
+                        className="rounded border-slate-300 text-blue-600 cursor-pointer"
+                      />
+                      <label htmlFor={`obrigacao-${o.id}`} className="ml-2 text-sm cursor-pointer">
                         {o.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                {(!form.obrigacaoIds || form.obrigacaoIds.length === 0) && (
+                  <p className="text-xs text-red-600 mt-1">Selecione pelo menos uma obrigação</p>
+                )}
               </div>
 
               <div>
