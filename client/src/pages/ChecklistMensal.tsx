@@ -63,6 +63,7 @@ interface ChecklistForm {
   horaInicial: string;
   horaFinal: string;
   totalHoras: string;
+  mesesSelecionados?: number[];
 }
 
 const initialForm: ChecklistForm = {
@@ -75,6 +76,7 @@ const initialForm: ChecklistForm = {
   horaInicial: "",
   horaFinal: "",
   totalHoras: "",
+  mesesSelecionados: [],
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -184,6 +186,11 @@ export default function ChecklistMensal() {
       return;
     }
 
+    if (!editingId && (!form.mesesSelecionados || form.mesesSelecionados.length === 0)) {
+      toast.error("Selecione pelo menos um mês");
+      return;
+    }
+
     try {
       if (editingId) {
         await updateMutation.mutateAsync({
@@ -195,11 +202,15 @@ export default function ChecklistMensal() {
         });
         toast.success("Item atualizado com sucesso!");
       } else {
-        await createMutation.mutateAsync({
-          ...form,
-          totalHoras: form.totalHoras ? parseFloat(form.totalHoras) : undefined,
-        });
-        toast.success("Item criado com sucesso!");
+        const mesesSelecionados = form.mesesSelecionados || [];
+        for (const mesIndex of mesesSelecionados) {
+          await createMutation.mutateAsync({
+            ...form,
+            mes: MESES[mesIndex],
+            totalHoras: form.totalHoras ? parseFloat(form.totalHoras) : undefined,
+          });
+        }
+        toast.success(`${mesesSelecionados.length} item(ns) criado(s) com sucesso!`);
       }
       utils.checklist.listByMonth.invalidate();
       setIsOpen(false);
@@ -306,6 +317,29 @@ export default function ChecklistMensal() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">Selecione os Meses *</label>
+                <div className="grid grid-cols-3 gap-2 mt-2 p-3 border rounded-lg bg-slate-50">
+                  {MESES.map((mes, index) => (
+                    <div key={mes} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`mes-${index}`}
+                        checked={(form.mesesSelecionados || []).includes(index)}
+                        onCheckedChange={(checked) => {
+                          const meses = form.mesesSelecionados || [];
+                          if (checked) {
+                            setForm({ ...form, mesesSelecionados: [...meses, index] });
+                          } else {
+                            setForm({ ...form, mesesSelecionados: meses.filter(m => m !== index) });
+                          }
+                        }}
+                      />
+                      <label htmlFor={`mes-${index}`} className="text-sm cursor-pointer">{mes.slice(0, 3)}</label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>
