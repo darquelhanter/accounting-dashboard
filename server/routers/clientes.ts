@@ -5,6 +5,7 @@ import {
   createCliente,
   updateCliente,
   deleteCliente,
+  linkObrigacoesToChecklistByRegime,
 } from "../db";
 
 const clienteSchema = z.object({
@@ -40,7 +41,15 @@ export const clientesRouter = router({
         status: input.status || "Ativo",
       });
       
-      // Normalizar valor para número
+      const clienteId = (result as any).id || (result as any)[0]?.id;
+      if (clienteId) {
+        try {
+          await linkObrigacoesToChecklistByRegime(clienteId, input.regime);
+        } catch (error) {
+          console.error("Erro ao vincular obrigações ao checklist:", error);
+        }
+      }
+      
       return {
         ...result,
         valor: typeof (result as any).valor === 'number' ? (result as any).valor : Number((result as any).valor),

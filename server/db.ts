@@ -431,3 +431,77 @@ export async function getAllNotificacaoConfigs() {
   if (!db) return [];
   return db.select().from(notificacaoConfigs).where(eq(notificacaoConfigs.ativo, true));
 }
+
+
+// Função para vincular automaticamente obrigações ao checklist quando um cliente é criado
+export async function linkObrigacoesToChecklistByRegime(clienteId: number, regime: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    // Buscar todas as obrigações que correspondem ao regime
+    const todasAsObrigacoes = await db.select().from(obrigacoes);
+    const obrigacoesDoRegime = todasAsObrigacoes.filter(
+      (o: any) => o.regime === regime || o.regime === "Todos"
+    );
+
+    if (obrigacoesDoRegime.length === 0) {
+      console.log(`Nenhuma obrigação encontrada para o regime: ${regime}`);
+      return [];
+    }
+
+    const checklistItems: any[] = [];
+    const anoAtual = new Date().getFullYear();
+
+    // Para cada obrigação, criar entradas no checklist
+    for (const obrigacao of obrigacoesDoRegime) {
+      // Se a obrigação é mensal, criar entradas para todos os 12 meses
+      if (obrigacao.periodicidade === "Mensal") {
+        for (let mes = 1; mes <= 12; mes++) {
+          const mesStr = String(mes).padStart(2, "0");
+          checklistItems.push({
+            clienteId,
+            obrigacaoId: obrigacao.id,
+            mes: mesStr,
+            ano: anoAtual,
+            status: "Pendente",
+            dataVencimento: obrigacao.vencimento,
+          });
+        }
+      } else if (obrigacao.periodicidade === "Anual") {
+        // Se é anual, criar apenas uma entrada para o ano atual
+        checklistItems.push({
+          clienteId,
+          obrigacaoId: obrigacao.id,
+          mes: "12",
+          ano: anoAtual,
+          status: "Pendente",
+          dataVencimento: obrigacao.vencimento,
+        });
+      } else if (obrigacao.periodicidade === "Contínuo") {
+        // Se é contínuo, criar 4 entradas (meses 3, 6, 9, 12)
+        for (const mes of [3, 6, 9, 12]) {
+          const mesStr = String(mes).padStart(2, "0");
+          checklistItems.push({
+            clienteId,
+            obrigacaoId: obrigacao.id,
+            mes: mesStr,
+            ano: anoAtual,
+            status: "Pendente",
+            dataVencimento: obrigacao.vencimento,
+          });
+        }
+      }
+    }
+
+    // Inserir todos os itens do checklist
+    if (checklistItems.length > 0) {
+      await db.insert(checklistObrigacoes).values(checklistItems);
+    }
+
+    return checklistItems;
+  } catch (error) {
+    console.error("Erro ao vincular obrigações ao checklist:", error);
+    throw error;
+  }
+}
