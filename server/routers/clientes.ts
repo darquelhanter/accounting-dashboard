@@ -41,10 +41,11 @@ export const clientesRouter = router({
         status: input.status || "Ativo",
       });
       
-      const clienteId = (result as any).id || (result as any)[0]?.id;
+      const clienteId = (result as any)?.id;
       if (clienteId) {
         try {
           await linkObrigacoesToChecklistByRegime(clienteId, input.regime);
+          console.log(`Obrigações vinculadas ao checklist para cliente ${clienteId}`);
         } catch (error) {
           console.error("Erro ao vincular obrigações ao checklist:", error);
         }

@@ -99,7 +99,11 @@ export async function getClientesByUser(userId: number) {
 export async function createCliente(data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.insert(clientes).values(data);
+  const result = await db.insert(clientes).values(data);
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  if (!insertId) throw new Error("Failed to get insert ID");
+  const cliente = await db.select().from(clientes).where(eq(clientes.id, insertId));
+  return cliente[0] || { id: insertId, ...data };
 }
 
 export async function updateCliente(id: number, data: any) {
@@ -439,6 +443,13 @@ export async function linkObrigacoesToChecklistByRegime(clienteId: number, regim
   if (!db) throw new Error("Database not available");
 
   try {
+    // Buscar o cliente para obter o userId
+    const cliente = await db.select().from(clientes).where(eq(clientes.id, clienteId));
+    if (!cliente || cliente.length === 0) {
+      throw new Error(`Cliente com ID ${clienteId} não encontrado`);
+    }
+    const userId = cliente[0].userId;
+
     // Buscar todas as obrigações que correspondem ao regime
     const todasAsObrigacoes = await db.select().from(obrigacoes);
     const obrigacoesDoRegime = todasAsObrigacoes.filter(
@@ -452,43 +463,43 @@ export async function linkObrigacoesToChecklistByRegime(clienteId: number, regim
 
     const checklistItems: any[] = [];
     const anoAtual = new Date().getFullYear();
+    const mesesNomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
     // Para cada obrigação, criar entradas no checklist
     for (const obrigacao of obrigacoesDoRegime) {
       // Se a obrigação é mensal, criar entradas para todos os 12 meses
       if (obrigacao.periodicidade === "Mensal") {
-        for (let mes = 1; mes <= 12; mes++) {
-          const mesStr = String(mes).padStart(2, "0");
+        for (let mes = 0; mes < 12; mes++) {
           checklistItems.push({
+            userId,
             clienteId,
             obrigacaoId: obrigacao.id,
-            mes: mesStr,
+            mes: mesesNomes[mes],
             ano: anoAtual,
             status: "Pendente",
-            dataVencimento: obrigacao.vencimento,
           });
         }
       } else if (obrigacao.periodicidade === "Anual") {
         // Se é anual, criar apenas uma entrada para o ano atual
         checklistItems.push({
+          userId,
           clienteId,
           obrigacaoId: obrigacao.id,
-          mes: "12",
+          mes: "Dezembro",
           ano: anoAtual,
           status: "Pendente",
-          dataVencimento: obrigacao.vencimento,
         });
       } else if (obrigacao.periodicidade === "Contínuo") {
         // Se é contínuo, criar 4 entradas (meses 3, 6, 9, 12)
-        for (const mes of [3, 6, 9, 12]) {
-          const mesStr = String(mes).padStart(2, "0");
+        for (const mesIdx of [2, 5, 8, 11]) {
           checklistItems.push({
+            userId,
             clienteId,
             obrigacaoId: obrigacao.id,
-            mes: mesStr,
+            mes: mesesNomes[mesIdx],
             ano: anoAtual,
             status: "Pendente",
-            dataVencimento: obrigacao.vencimento,
           });
         }
       }
@@ -496,6 +507,7 @@ export async function linkObrigacoesToChecklistByRegime(clienteId: number, regim
 
     // Inserir todos os itens do checklist
     if (checklistItems.length > 0) {
+      console.log(`Criando ${checklistItems.length} entradas no checklist para cliente ${clienteId}`);
       await db.insert(checklistObrigacoes).values(checklistItems);
     }
 
