@@ -35,6 +35,7 @@ const menuItems = [
   { icon: DollarSign, label: "Mensalidades", path: "/mensalidades" },
   { icon: Bell, label: "Notificações", path: "/notificacao-configs" },
   { icon: Settings, label: "Administração", path: "/admin" },
+  { icon: Users, label: "Aprovação de Usuários", path: "/user-approval" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

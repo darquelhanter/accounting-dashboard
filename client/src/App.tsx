@@ -15,6 +15,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import UserApproval from "./pages/UserApproval";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -30,6 +31,7 @@ function Router() {
       <Route path={"/notificacao-configs"} component={() => <DashboardLayout><NotificacaoConfigs /></DashboardLayout>} />
       <Route path={"/admin"} component={() => <DashboardLayout><Admin /></DashboardLayout>} />
       <Route path={"/profile"} component={() => <DashboardLayout><Profile /></DashboardLayout>} />
+      <Route path={"/user-approval"} component={() => <DashboardLayout><UserApproval /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

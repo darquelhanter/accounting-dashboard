@@ -17,6 +17,11 @@ const requireUser = t.middleware(async opts => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 
+  // Verificar se o usuário foi aprovado (exceto para admin e se status for definido)
+  if (ctx.user.role !== 'admin' && ctx.user.status && ctx.user.status !== 'approved') {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Sua conta ainda não foi aprovada. Por favor, aguarde a aprovação do administrador." });
+  }
+
   return next({
     ctx: {
       ...ctx,

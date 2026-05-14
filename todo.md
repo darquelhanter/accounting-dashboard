@@ -191,3 +191,12 @@
 - [x] Migrar dados do usuário Google para autenticação local
 - [x] Adicionar testes unitários
 - [x] Testar e validar funcionalidade completa
+
+## Fase 19: Sistema de Aprovação de Usuários (CONCLUÍDA)
+- [x] Adicionar campo de status na tabela de usuários
+- [x] Implementar procedimentos tRPC para aprovação/rejeição
+- [x] Bloquear acesso para usuários não aprovados
+- [x] Criar página de administração para aprovar usuários
+- [x] Implementar notificação ao novo registro
+- [x] Adicionar testes unitários
+- [x] Testar e validar funcionalidade completa

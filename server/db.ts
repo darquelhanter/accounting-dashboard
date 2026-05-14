@@ -148,6 +148,43 @@ export async function verifyPassword(email: string, password: string) {
   return user;
 }
 
+// Aprovação de Usuários
+export async function getPendingUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users).where(eq(users.status, 'pending'));
+}
+
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users);
+}
+
+export async function approveUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set({ status: 'approved' }).where(eq(users.id, userId));
+  return getUserById(userId);
+}
+
+export async function rejectUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set({ status: 'rejected' }).where(eq(users.id, userId));
+  return getUserById(userId);
+}
+
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 // Clientes
 export async function getClientesByUser(userId: number) {
   const db = await getDb();

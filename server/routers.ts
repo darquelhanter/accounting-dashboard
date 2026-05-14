@@ -13,6 +13,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { sdk } from "./_core/sdk";
+import { notifyOwner } from "./_core/notification";
 import { TRPCError } from "@trpc/server";
 import bcrypt from "bcryptjs";
 
@@ -58,11 +59,22 @@ export const appRouter = router({
           const cookieOptions = getSessionCookieOptions(ctx.req);
           ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
+          // Notificar admin
+          try {
+            const msg = `Novo usuario: ${user.name} (${user.email})`;
+            await notifyOwner({
+              title: "Novo usuario registrado",
+              content: msg,
+            });
+          } catch (e) {
+            console.warn("Notificacao falhou", e);
+          }
+
           return { success: true, user };
         } catch (error: any) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: error.message || "Erro ao registrar usuário",
+            message: error.message || "Erro ao registrar usuario",
           });
         }
       }),
@@ -150,6 +162,36 @@ export const appRouter = router({
             message: "Erro ao alterar senha",
           });
         }
+      }),
+  }),
+  users: router({
+    getPending: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== 'admin') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+      }
+      return db.getPendingUsers();
+    }),
+    getAll: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== 'admin') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+      }
+      return db.getAllUsers();
+    }),
+    approve: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.approveUser(input.userId);
+      }),
+    reject: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.rejectUser(input.userId);
       }),
   }),
 
