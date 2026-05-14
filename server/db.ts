@@ -185,6 +185,16 @@ export async function getUserById(userId: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function deleteUsers(userIds: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (userIds.length === 0) return 0;
+  
+  const { inArray } = await import('drizzle-orm');
+  await db.delete(users).where(inArray(users.id, userIds));
+  return userIds.length;
+}
+
 // Clientes
 export async function getClientesByUser(userId: number) {
   const db = await getDb();

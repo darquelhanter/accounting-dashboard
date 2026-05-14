@@ -200,3 +200,11 @@
 - [x] Implementar notificação ao novo registro
 - [x] Adicionar testes unitários
 - [x] Testar e validar funcionalidade completa
+
+## Fase 20: Exclusão em Massa de Usuários (CONCLUÍDA)
+- [x] Implementar procedimento tRPC para deletar múltiplos usuários
+- [x] Adicionar checkboxes na tabela de usuários
+- [x] Adicionar barra de ações para exclusão em massa
+- [x] Implementar confirmação de exclusão
+- [x] Adicionar testes unitários
+- [x] Testar e validar funcionalidade completa

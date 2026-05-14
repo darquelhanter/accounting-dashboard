@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -10,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Clock, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Loader2, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -26,6 +27,10 @@ import {
 export default function UserApproval() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [action, setAction] = useState<"approve" | "reject" | null>(null);
+  const [selectedPendingIds, setSelectedPendingIds] = useState<Set<number>>(new Set());
+  const [selectedAllIds, setSelectedAllIds] = useState<Set<number>>(new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState<"pending" | "all" | null>(null);
 
   const utils = trpc.useUtils();
   const { data: pendingUsers = [], isLoading } = trpc.users.getPending.useQuery();
@@ -57,6 +62,21 @@ export default function UserApproval() {
     },
   });
 
+  const deleteUsersMutation = trpc.users.deleteMany.useMutation({
+    onSuccess: () => {
+      toast.success("Usuários deletados com sucesso!");
+      utils.users.getPending.invalidate();
+      utils.users.getAll.invalidate();
+      setSelectedPendingIds(new Set());
+      setSelectedAllIds(new Set());
+      setDeleteConfirmOpen(false);
+      setDeleteType(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao deletar usuários");
+    },
+  });
+
   const handleApprove = async () => {
     if (!selectedUserId) return;
     await approveMutation.mutateAsync({ userId: selectedUserId });
@@ -65,6 +85,52 @@ export default function UserApproval() {
   const handleReject = async () => {
     if (!selectedUserId) return;
     await rejectMutation.mutateAsync({ userId: selectedUserId });
+  };
+
+  const handleDeletePending = async () => {
+    if (selectedPendingIds.size === 0) return;
+    await deleteUsersMutation.mutateAsync({ userIds: Array.from(selectedPendingIds) });
+  };
+
+  const handleDeleteAll = async () => {
+    if (selectedAllIds.size === 0) return;
+    await deleteUsersMutation.mutateAsync({ userIds: Array.from(selectedAllIds) });
+  };
+
+  const togglePendingSelection = (userId: number) => {
+    const newSet = new Set(selectedPendingIds);
+    if (newSet.has(userId)) {
+      newSet.delete(userId);
+    } else {
+      newSet.add(userId);
+    }
+    setSelectedPendingIds(newSet);
+  };
+
+  const toggleAllSelection = (userId: number) => {
+    const newSet = new Set(selectedAllIds);
+    if (newSet.has(userId)) {
+      newSet.delete(userId);
+    } else {
+      newSet.add(userId);
+    }
+    setSelectedAllIds(newSet);
+  };
+
+  const selectAllPending = () => {
+    if (selectedPendingIds.size === pendingUsers.length) {
+      setSelectedPendingIds(new Set());
+    } else {
+      setSelectedPendingIds(new Set(pendingUsers.map((u: any) => u.id)));
+    }
+  };
+
+  const selectAllUsers = () => {
+    if (selectedAllIds.size === allUsers.length) {
+      setSelectedAllIds(new Set());
+    } else {
+      setSelectedAllIds(new Set(allUsers.map((u: any) => u.id)));
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -110,10 +176,28 @@ export default function UserApproval() {
       {/* Usuários Pendentes */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuários Pendentes de Aprovação</CardTitle>
-          <CardDescription>
-            {pendingUsers.length} usuário(s) aguardando aprovação
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Usuários Pendentes de Aprovação</CardTitle>
+              <CardDescription>
+                {pendingUsers.length} usuário(s) aguardando aprovação
+              </CardDescription>
+            </div>
+            {selectedPendingIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  setDeleteType("pending");
+                  setDeleteConfirmOpen(true);
+                }}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Deletar {selectedPendingIds.size}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -129,6 +213,12 @@ export default function UserApproval() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedPendingIds.size === pendingUsers.length && pendingUsers.length > 0}
+                        onCheckedChange={selectAllPending}
+                      />
+                    </TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Data de Registro</TableHead>
@@ -138,6 +228,12 @@ export default function UserApproval() {
                 <TableBody>
                   {pendingUsers.map((user: any) => (
                     <TableRow key={user.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedPendingIds.has(user.id)}
+                          onCheckedChange={() => togglePendingSelection(user.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{user.name || "-"}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{formatDate(user.createdAt)}</TableCell>
@@ -181,10 +277,28 @@ export default function UserApproval() {
       {/* Todos os Usuários */}
       <Card>
         <CardHeader>
-          <CardTitle>Todos os Usuários</CardTitle>
-          <CardDescription>
-            Total de {allUsers.length} usuário(s) no sistema
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Todos os Usuários</CardTitle>
+              <CardDescription>
+                Total de {allUsers.length} usuário(s) no sistema
+              </CardDescription>
+            </div>
+            {selectedAllIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  setDeleteType("all");
+                  setDeleteConfirmOpen(true);
+                }}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Deletar {selectedAllIds.size}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoadingAll ? (
@@ -196,6 +310,12 @@ export default function UserApproval() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedAllIds.size === allUsers.length && allUsers.length > 0}
+                        onCheckedChange={selectAllUsers}
+                      />
+                    </TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
@@ -206,6 +326,12 @@ export default function UserApproval() {
                 <TableBody>
                   {allUsers.map((user: any) => (
                     <TableRow key={user.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedAllIds.has(user.id)}
+                          onCheckedChange={() => toggleAllSelection(user.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{user.name || "-"}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
@@ -224,7 +350,7 @@ export default function UserApproval() {
         </CardContent>
       </Card>
 
-      {/* Dialog de Confirmação */}
+      {/* Dialog de Confirmação para Aprovação/Rejeição */}
       <AlertDialog open={selectedUserId !== null && action !== null}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -260,6 +386,42 @@ export default function UserApproval() {
                 "Aprovar"
               ) : (
                 "Rejeitar"
+              )}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Confirmação para Exclusão em Massa */}
+      <AlertDialog open={deleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deletar Usuários?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a deletar {deleteType === "pending" ? selectedPendingIds.size : selectedAllIds.size} usuário(s). Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel
+              onClick={() => {
+                setDeleteConfirmOpen(false);
+                setDeleteType(null);
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteType === "pending" ? handleDeletePending : handleDeleteAll}
+              disabled={deleteUsersMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteUsersMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deletando...
+                </>
+              ) : (
+                "Deletar"
               )}
             </AlertDialogAction>
           </div>

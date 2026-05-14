@@ -193,6 +193,17 @@ export const appRouter = router({
         }
         return db.rejectUser(input.userId);
       }),
+    deleteMany: protectedProcedure
+      .input(z.object({ userIds: z.array(z.number()) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        if (input.userIds.length === 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Nenhum usuario selecionado' });
+        }
+        return db.deleteUsers(input.userIds);
+      }),
   }),
 
   // TODO: add feature routers here, e.g.
