@@ -79,6 +79,15 @@ export default function Clientes() {
   const updateMutation = trpc.clientes.update.useMutation();
   const deleteMutation = trpc.clientes.delete.useMutation();
   const deleteManyMutation = trpc.clientes.deleteMany.useMutation();
+  const seedMEIMutation = trpc.obrigacoes.seedMEI.useMutation({
+    onSuccess: () => {
+      toast.success("Obrigacoes MEI adicionadas com sucesso!");
+      utils.obrigacoes.list.invalidate();
+    },
+    onError: () => {
+      toast.error("Erro ao adicionar obrigacoes MEI");
+    },
+  });
 
   const handleSelectAll = () => {
     if (selectedIds.length === paginatedClientes.length) {
@@ -213,15 +222,8 @@ export default function Clientes() {
     }
   };
 
-  const handleAddMEIObrigacoes = async () => {
-    try {
-      await trpc.obrigacoes.seedMEI.mutate();
-      toast.success("Obrigações MEI adicionadas com sucesso!");
-      utils.obrigacoes.list.invalidate();
-    } catch (error) {
-      toast.error("Erro ao adicionar obrigações MEI");
-      console.error(error);
-    }
+  const handleAddMEIObrigacoes = () => {
+    seedMEIMutation.mutate();
   };
 
   return (
@@ -450,7 +452,7 @@ export default function Clientes() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleAddMEIObrigacoes(cliente.id)}
+                                onClick={() => handleAddMEIObrigacoes()}
                                 className="hover:bg-green-50"
                                 title="Adicionar obrigações MEI"
                               >

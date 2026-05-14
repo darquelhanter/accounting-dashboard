@@ -183,3 +183,11 @@
 - [x] Implementar validação de email e força de senha
 - [x] Adicionar testes unitários
 - [x] Testar e validar funcionalidade completa
+
+## Fase 18: Página de Perfil e Alterar Senha (CONCLUÍDA)
+- [x] Criar página de perfil do usuário
+- [x] Implementar funcionalidade de alterar senha
+- [x] Adicionar link de perfil no menu de usuário
+- [x] Migrar dados do usuário Google para autenticação local
+- [x] Adicionar testes unitários
+- [x] Testar e validar funcionalidade completa

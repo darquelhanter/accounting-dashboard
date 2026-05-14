@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, openId, name, email FROM users WHERE loginMethod = 'google' OR openId LIKE 'google_%' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yDwXAxosAWjcjQ.819235c11400 --database JJAB8vRJzBRfMVtGoqweeU --execute SELECT id, openId, name, email FROM users WHERE loginMethod = 'google' OR openId LIKE 'google_%' LIMIT 1;",
+  "rows": [
+    {
+      "id": "1",
+      "openId": "4vbqLYfjQe8NmFg9sRkfkJ",
+      "name": "Darquel Hanter",
+      "email": "darquelhanter1@gmail.com"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\n1\t4vbqLYfjQe8NmFg9sRkfkJ\tDarquel Hanter\tdarquelhanter1@gmail.com\n",
+  "stderr": "",
+  "execution_time_ms": 928
+}

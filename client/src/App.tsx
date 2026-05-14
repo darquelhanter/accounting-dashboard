@@ -14,6 +14,7 @@ import NotificacaoConfigs from "./pages/NotificacaoConfigs";
 import DashboardLayout from "./components/DashboardLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -28,6 +29,7 @@ function Router() {
       <Route path={"/mensalidades"} component={() => <DashboardLayout><Mensalidades /></DashboardLayout>} />
       <Route path={"/notificacao-configs"} component={() => <DashboardLayout><NotificacaoConfigs /></DashboardLayout>} />
       <Route path={"/admin"} component={() => <DashboardLayout><Admin /></DashboardLayout>} />
+      <Route path={"/profile"} component={() => <DashboardLayout><Profile /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -1,6 +1,6 @@
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { clientesRouter } from "./routers/clientes";
 import { obrigacoesRouter } from "./routers/obrigacoes";
 import { checklistRouter } from "./routers/checklist";
@@ -14,6 +14,7 @@ import * as db from "./db";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
+import bcrypt from "bcryptjs";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -103,6 +104,50 @@ export const appRouter = router({
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Erro ao fazer login",
+          });
+        }
+      }),
+    changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().min(1, "Senha atual é obrigatória"),
+        newPassword: z.string().min(6, "Nova senha deve ter pelo menos 6 caracteres"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const user = await db.getUserByOpenId(ctx.user.openId || "");
+          if (!user || !user.passwordHash) {
+            throw new TRPCError({
+              code: "UNAUTHORIZED",
+              message: "Usuário não tem senha configurada",
+            });
+          }
+
+          // Verificar senha atual
+          const isValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+          if (!isValid) {
+            throw new TRPCError({
+              code: "UNAUTHORIZED",
+              message: "Senha atual incorreta",
+            });
+          }
+
+          // Hash da nova senha
+          const newPasswordHash = await bcrypt.hash(input.newPassword, 10);
+
+          // Atualizar senha
+          await db.upsertUser({
+            openId: user.openId,
+            passwordHash: newPasswordHash,
+          });
+
+          return { success: true };
+        } catch (error: any) {
+          if (error instanceof TRPCError) {
+            throw error;
+          }
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Erro ao alterar senha",
           });
         }
       }),
