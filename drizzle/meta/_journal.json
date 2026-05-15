@@ -57,6 +57,13 @@
       "when": 1778759808011,
       "tag": "0007_brave_zeigeist",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1778843358767,
+      "tag": "0008_cultured_vin_gonzales",
+      "breakpoints": true
     }
   ]
 }

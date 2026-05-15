@@ -208,3 +208,11 @@
 - [x] Implementar confirmação de exclusão
 - [x] Adicionar testes unitários
 - [x] Testar e validar funcionalidade completa
+
+## Fase 21: Sistema de Permissões de Empresas (CONCLUÍDA)
+- [x] Criar schema de permissões de acesso a empresas
+- [x] Implementar procedimentos tRPC para gerenciar permissões
+- [x] Atualizar queries de empresas para respeitar permissões
+- [x] Criar página de gerenciamento de permissões
+- [x] Adicionar testes unitários
+- [x] Testar e validar funcionalidade completa

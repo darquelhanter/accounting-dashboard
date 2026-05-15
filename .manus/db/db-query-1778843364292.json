@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `cliente_permissions` (\n  `id` int AUTO_INCREMENT PRIMARY KEY,\n  `clienteId` int NOT NULL,\n  `userId` int NOT NULL,\n  `canView` boolean NOT NULL DEFAULT true,\n  `canEdit` boolean NOT NULL DEFAULT false,\n  `canDelete` boolean NOT NULL DEFAULT false,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yDwXAxosAWjcjQ.819235c11400 --database JJAB8vRJzBRfMVtGoqweeU --execute CREATE TABLE IF NOT EXISTS `cliente_permissions` (\n  `id` int AUTO_INCREMENT PRIMARY KEY,\n  `clienteId` int NOT NULL,\n  `userId` int NOT NULL,\n  `canView` boolean NOT NULL DEFAULT true,\n  `canEdit` boolean NOT NULL DEFAULT false,\n  `canDelete` boolean NOT NULL DEFAULT false,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 341
+}

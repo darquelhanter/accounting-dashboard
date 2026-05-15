@@ -205,6 +205,38 @@ export const appRouter = router({
         return db.deleteUsers(input.userIds);
       }),
   }),
+  permissions: router({
+    grantAccess: protectedProcedure
+      .input(z.object({
+        clienteId: z.number(),
+        userId: z.number(),
+        canView: z.boolean().default(true),
+        canEdit: z.boolean().default(false),
+        canDelete: z.boolean().default(false),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.grantClienteAccess(input.clienteId, input.userId, input.canView, input.canEdit, input.canDelete);
+      }),
+    revokeAccess: protectedProcedure
+      .input(z.object({ clienteId: z.number(), userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.revokeClienteAccess(input.clienteId, input.userId);
+      }),
+    getClientePermissions: protectedProcedure
+      .input(z.object({ clienteId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getUsersWithClienteAccess(input.clienteId);
+      }),
+  }),
 
   // TODO: add feature routers here, e.g.
   // todo: router({

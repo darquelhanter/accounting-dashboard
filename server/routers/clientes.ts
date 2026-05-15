@@ -2,6 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
   getClientesByUser,
+  getClientesByUserWithPermissions,
   createCliente,
   updateCliente,
   deleteCliente,
@@ -19,7 +20,7 @@ const clienteSchema = z.object({
 
 export const clientesRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    const clientes = await getClientesByUser(ctx.user.id);
+    const clientes = await getClientesByUserWithPermissions(ctx.user.id);
     // Normalizar valor para número (MySQL DECIMAL retorna como string)
     return clientes.map((cliente: any) => ({
       ...cliente,

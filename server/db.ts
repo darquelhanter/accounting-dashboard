@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -622,4 +622,111 @@ export async function linkObrigacoesToChecklistByRegime(clienteId: number, regim
     console.error("Erro ao vincular obrigações ao checklist:", error);
     throw error;
   }
+}
+
+
+// Funções de Permissões de Empresas
+export async function grantClienteAccess(clienteId: number, userId: number, canView: boolean = true, canEdit: boolean = false, canDelete: boolean = false) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Verificar se já existe permissão
+  const existing = await db.select().from(clientePermissions)
+    .where(and(eq(clientePermissions.clienteId, clienteId), eq(clientePermissions.userId, userId)))
+    .limit(1);
+  
+  if (existing.length > 0) {
+    // Atualizar permissão existente
+    return await db.update(clientePermissions)
+      .set({ canView, canEdit, canDelete, updatedAt: new Date() })
+      .where(and(eq(clientePermissions.clienteId, clienteId), eq(clientePermissions.userId, userId)));
+  }
+  
+  // Criar nova permissão
+  return await db.insert(clientePermissions).values({
+    clienteId,
+    userId,
+    canView,
+    canEdit,
+    canDelete,
+  });
+}
+
+export async function revokeClienteAccess(clienteId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.delete(clientePermissions)
+    .where(and(eq(clientePermissions.clienteId, clienteId), eq(clientePermissions.userId, userId)));
+}
+
+export async function getClientesByUserWithPermissions(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Empresas criadas pelo usuário
+  const ownedClientes = await db.select().from(clientes).where(eq(clientes.userId, userId));
+  
+  // Empresas compartilhadas com o usuário
+  const permissions = await db.select().from(clientePermissions).where(eq(clientePermissions.userId, userId));
+  const sharedClienteIds = permissions.map(p => p.clienteId);
+  
+  let sharedClientes: any[] = [];
+  if (sharedClienteIds.length > 0) {
+    sharedClientes = await db.select().from(clientes).where(inArray(clientes.id, sharedClienteIds));
+  }
+  
+  // Combinar e remover duplicatas
+  const allClientes = [...ownedClientes, ...sharedClientes];
+  const uniqueClientes = Array.from(new Map(allClientes.map(c => [c.id, c])).values());
+  
+  return uniqueClientes;
+}
+
+export async function getClientePermissions(clienteId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(clientePermissions).where(eq(clientePermissions.clienteId, clienteId));
+}
+
+export async function getUsersWithClienteAccess(clienteId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const permissions = await db.select().from(clientePermissions).where(eq(clientePermissions.clienteId, clienteId));
+  const userIds = permissions.map(p => p.userId);
+  
+  if (userIds.length === 0) return [];
+  
+  const userList = await db.select().from(users).where(inArray(users.id, userIds));
+  
+  // Combinar informações de usuário com permissões
+  return userList.map(user => {
+    const perm = permissions.find(p => p.userId === user.id);
+    return {
+      ...user,
+      canView: perm?.canView || false,
+      canEdit: perm?.canEdit || false,
+      canDelete: perm?.canDelete || false,
+    };
+  });
+}
+
+export async function canUserAccessCliente(userId: number, clienteId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  
+  // Verificar se é o proprietário
+  const cliente = await db.select().from(clientes).where(eq(clientes.id, clienteId)).limit(1);
+  if (cliente.length > 0 && cliente[0].userId === userId) {
+    return true;
+  }
+  
+  // Verificar se tem permissão
+  const permission = await db.select().from(clientePermissions)
+    .where(and(eq(clientePermissions.clienteId, clienteId), eq(clientePermissions.userId, userId)))
+    .limit(1);
+  
+  return permission.length > 0 && permission[0].canView;
 }

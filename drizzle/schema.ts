@@ -118,3 +118,18 @@ export const notificacaoConfigs = mysqlTable("notificacao_configs", {
 
 export type NotificacaoConfig = typeof notificacaoConfigs.$inferSelect;
 export type InsertNotificacaoConfig = typeof notificacaoConfigs.$inferInsert;
+
+// Tabela de Permissões de Acesso a Empresas
+export const clientePermissions = mysqlTable("cliente_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull(),
+  userId: int("userId").notNull(),
+  canView: boolean("canView").default(true).notNull(),
+  canEdit: boolean("canEdit").default(false).notNull(),
+  canDelete: boolean("canDelete").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ClientePermission = typeof clientePermissions.$inferSelect;
+export type InsertClientePermission = typeof clientePermissions.$inferInsert;
