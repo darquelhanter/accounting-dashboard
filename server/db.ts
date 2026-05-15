@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -729,4 +729,87 @@ export async function canUserAccessCliente(userId: number, clienteId: number): P
     .limit(1);
   
   return permission.length > 0 && permission[0].canView;
+}
+
+
+// Funções de Auditoria de Acesso
+export async function logAuditAction(data: {
+  userId: number;
+  clienteId: number;
+  action: "view" | "create" | "update" | "delete" | "share" | "unshare";
+  entityType: "cliente" | "obrigacao" | "mensalidade" | "checklist";
+  entityId?: number;
+  description?: string;
+  changes?: any;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.insert(auditLog).values({
+    userId: data.userId,
+    clienteId: data.clienteId,
+    action: data.action,
+    entityType: data.entityType,
+    entityId: data.entityId,
+    description: data.description,
+    changes: data.changes ? JSON.stringify(data.changes) : null,
+    ipAddress: data.ipAddress,
+    userAgent: data.userAgent,
+  });
+}
+
+export async function getAuditLogByCliente(clienteId: number, limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(auditLog)
+    .where(eq(auditLog.clienteId, clienteId))
+    .orderBy(auditLog.timestamp)
+    .limit(limit);
+}
+
+export async function getAuditLogByUser(userId: number, limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(auditLog)
+    .where(eq(auditLog.userId, userId))
+    .orderBy(auditLog.timestamp)
+    .limit(limit);
+}
+
+export async function getAuditLogByAction(action: string, limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(auditLog)
+    .where(eq(auditLog.action, action as any))
+    .orderBy(auditLog.timestamp)
+    .limit(limit);
+}
+
+export async function getAuditLogByDateRange(startDate: Date, endDate: Date, limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const { gte, lte } = require("drizzle-orm");
+  
+  return await db.select().from(auditLog)
+    .where(and(
+      gte(auditLog.timestamp, startDate),
+      lte(auditLog.timestamp, endDate)
+    ))
+    .orderBy(auditLog.timestamp)
+    .limit(limit);
+}
+
+export async function getAllAuditLogs(limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(auditLog)
+    .orderBy(auditLog.timestamp)
+    .limit(limit);
 }

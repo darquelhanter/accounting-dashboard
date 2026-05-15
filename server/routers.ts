@@ -237,6 +237,32 @@ export const appRouter = router({
         return db.getUsersWithClienteAccess(input.clienteId);
       }),
   }),
+  audit: router({
+    getByCliente: protectedProcedure
+      .input(z.object({ clienteId: z.number(), limit: z.number().default(100) }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getAuditLogByCliente(input.clienteId, input.limit);
+      }),
+    getByUser: protectedProcedure
+      .input(z.object({ userId: z.number(), limit: z.number().default(100) }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getAuditLogByUser(input.userId, input.limit);
+      }),
+    getAll: protectedProcedure
+      .input(z.object({ limit: z.number().default(100) }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getAllAuditLogs(input.limit);
+      }),
+  }),
 
   // TODO: add feature routers here, e.g.
   // todo: router({

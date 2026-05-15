@@ -17,6 +17,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import UserApproval from "./pages/UserApproval";
 import ClientePermissions from "./pages/ClientePermissions";
+import AuditLog from "./pages/AuditLog";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -34,6 +35,7 @@ function Router() {
       <Route path={"/profile"} component={() => <DashboardLayout><Profile /></DashboardLayout>} />
       <Route path={"/user-approval"} component={() => <DashboardLayout><UserApproval /></DashboardLayout>} />
       <Route path={"/cliente-permissions"} component={() => <DashboardLayout><ClientePermissions /></DashboardLayout>} />
+      <Route path={"/audit-log"} component={() => <DashboardLayout><AuditLog /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

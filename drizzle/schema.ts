@@ -133,3 +133,21 @@ export const clientePermissions = mysqlTable("cliente_permissions", {
 
 export type ClientePermission = typeof clientePermissions.$inferSelect;
 export type InsertClientePermission = typeof clientePermissions.$inferInsert;
+
+// Tabela de Auditoria de Acesso
+export const auditLog = mysqlTable("audit_log", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  action: mysqlEnum("action", ["view", "create", "update", "delete", "share", "unshare"]).notNull(),
+  entityType: mysqlEnum("entityType", ["cliente", "obrigacao", "mensalidade", "checklist"]).notNull(),
+  entityId: int("entityId"),
+  description: text("description"),
+  changes: text("changes"),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: text("userAgent"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLog.$inferSelect;
+export type InsertAuditLog = typeof auditLog.$inferInsert;

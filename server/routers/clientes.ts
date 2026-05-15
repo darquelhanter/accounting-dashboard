@@ -7,6 +7,7 @@ import {
   updateCliente,
   deleteCliente,
   linkObrigacoesToChecklistByRegime,
+  logAuditAction,
 } from "../db";
 
 const clienteSchema = z.object({
@@ -47,6 +48,16 @@ export const clientesRouter = router({
         try {
           await linkObrigacoesToChecklistByRegime(clienteId, input.regime);
           console.log(`Obrigações vinculadas ao checklist para cliente ${clienteId}`);
+          // Log auditoria
+          await logAuditAction({
+            userId: ctx.user.id,
+            clienteId,
+            action: "create",
+            entityType: "cliente",
+            entityId: clienteId,
+            description: `Empresa criada: ${input.nome}`,
+            changes: input,
+          });
         } catch (error) {
           console.error("Erro ao vincular obrigações ao checklist:", error);
         }
@@ -65,7 +76,7 @@ export const clientesRouter = router({
         data: clienteSchema.partial(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const valor = input.data.valor
         ? typeof input.data.valor === "string"
           ? parseFloat(input.data.valor)
@@ -77,6 +88,17 @@ export const clientesRouter = router({
         ...(valor !== undefined && { valor }),
       });
       
+      // Log auditoria
+      await logAuditAction({
+        userId: ctx.user.id,
+        clienteId: input.id,
+        action: "update",
+        entityType: "cliente",
+        entityId: input.id,
+        description: `Empresa atualizada`,
+        changes: input.data,
+      });
+      
       // Normalizar valor para número
       return {
         ...result,
@@ -86,8 +108,19 @@ export const clientesRouter = router({
 
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const result = await deleteCliente(input.id);
+      
+      // Log auditoria
+      await logAuditAction({
+        userId: ctx.user.id,
+        clienteId: input.id,
+        action: "delete",
+        entityType: "cliente",
+        entityId: input.id,
+        description: `Empresa deletada`,
+      });
+      
       return {
         ...result,
         valor: typeof (result as any).valor === 'number' ? (result as any).valor : Number((result as any).valor),

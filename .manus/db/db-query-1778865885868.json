@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `audit_log` (\n  `id` int AUTO_INCREMENT PRIMARY KEY,\n  `userId` int NOT NULL,\n  `clienteId` int NOT NULL,\n  `action` enum('view', 'create', 'update', 'delete', 'share', 'unshare') NOT NULL,\n  `entityType` enum('cliente', 'obrigacao', 'mensalidade', 'checklist') NOT NULL,\n  `entityId` int,\n  `description` text,\n  `changes` text,\n  `ipAddress` varchar(45),\n  `userAgent` text,\n  `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yDwXAxosAWjcjQ.819235c11400 --database JJAB8vRJzBRfMVtGoqweeU --execute CREATE TABLE IF NOT EXISTS `audit_log` (\n  `id` int AUTO_INCREMENT PRIMARY KEY,\n  `userId` int NOT NULL,\n  `clienteId` int NOT NULL,\n  `action` enum('view', 'create', 'update', 'delete', 'share', 'unshare') NOT NULL,\n  `entityType` enum('cliente', 'obrigacao', 'mensalidade', 'checklist') NOT NULL,\n  `entityId` int,\n  `description` text,\n  `changes` text,\n  `ipAddress` varchar(45),\n  `userAgent` text,\n  `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 389
+}
