@@ -151,3 +151,39 @@ export const auditLog = mysqlTable("audit_log", {
 
 export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = typeof auditLog.$inferInsert;
+
+
+// ===== TABELAS DE BACKUP =====
+// Tabela de Backup de Clientes
+export const clientesBackup = mysqlTable("clientes_backup", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  regime: mysqlEnum("regime", ["Simples", "Lucro Presumido", "Lucro Real", "MEI"]).notNull(),
+  setor: mysqlEnum("setor", ["Fiscal", "Trabalhista", "Contábil", "Geral"]).default("Geral"),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  vencimento: int("vencimento").notNull(),
+  status: mysqlEnum("status", ["Ativo", "Inativo"]).default("Ativo"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  backupedAt: timestamp("backupedAt").defaultNow().notNull(),
+});
+
+export type ClienteBackup = typeof clientesBackup.$inferSelect;
+export type InsertClienteBackup = typeof clientesBackup.$inferInsert;
+
+// Tabela de Log de Sincronização
+export const syncLog = mysqlTable("sync_log", {
+  id: int("id").autoincrement().primaryKey(),
+  entityType: mysqlEnum("entityType", ["cliente", "obrigacao", "mensalidade", "checklist"]).notNull(),
+  entityId: int("entityId").notNull(),
+  action: mysqlEnum("action", ["create", "update", "delete"]).notNull(),
+  status: mysqlEnum("status", ["pending", "synced", "failed"]).default("pending").notNull(),
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  syncedAt: timestamp("syncedAt"),
+});
+
+export type SyncLog = typeof syncLog.$inferSelect;
+export type InsertSyncLog = typeof syncLog.$inferInsert;

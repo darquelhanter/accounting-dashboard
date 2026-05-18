@@ -263,6 +263,52 @@ export const appRouter = router({
         return db.getAllAuditLogs(input.limit);
       }),
   }),
+  backup: router({
+    getAllBackups: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getAllBackups();
+      }),
+    getBackupById: protectedProcedure
+      .input(z.object({ clienteId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getBackupById(input.clienteId);
+      }),
+    restore: protectedProcedure
+      .input(z.object({ clienteId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.restoreClienteFromBackup(input.clienteId);
+      }),
+    getSyncStats: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getSyncStats();
+      }),
+    getPendingSyncLogs: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getPendingSyncLogs();
+      }),
+    getFailedSyncLogs: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        return db.getFailedSyncLogs();
+      }),
+  }),
 
   // TODO: add feature routers here, e.g.
   // todo: router({

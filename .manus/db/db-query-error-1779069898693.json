@@ -1,0 +1,8 @@
+{
+  "query": "CREATE DATABASE IF NOT EXISTS accounting_backup CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3yDwXAxosAWjcjQ.819235c11400 --database JJAB8vRJzBRfMVtGoqweeU --execute CREATE DATABASE IF NOT EXISTS accounting_backup CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1044 (42000) at line 1: Access denied for user '3yDwXAxosAWjcjQ.819235c11400'@'%' to database 'accounting_backup'"
+  ]
+}

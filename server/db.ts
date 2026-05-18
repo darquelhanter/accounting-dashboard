@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -812,4 +812,160 @@ export async function getAllAuditLogs(limit: number = 100) {
   return await db.select().from(auditLog)
     .orderBy(auditLog.timestamp)
     .limit(limit);
+}
+
+
+// ===== FUNÇÕES DE BACKUP E SINCRONIZAÇÃO =====
+
+// Fazer backup de um cliente
+export async function backupCliente(clienteId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const cliente = await db.select().from(clientes).where(eq(clientes.id, clienteId)).limit(1);
+  if (!cliente || cliente.length === 0) return null;
+  
+  const backupData = cliente[0];
+  
+  // Inserir no backup (ou atualizar se já existe)
+  await db.insert(clientesBackup).values({
+    ...backupData,
+    backupedAt: new Date(),
+  }).onDuplicateKeyUpdate({
+    set: {
+      nome: backupData.nome,
+      email: backupData.email,
+      regime: backupData.regime,
+      setor: backupData.setor,
+      valor: backupData.valor,
+      vencimento: backupData.vencimento,
+      status: backupData.status,
+      updatedAt: backupData.updatedAt,
+      backupedAt: new Date(),
+    },
+  });
+  
+  return backupData;
+}
+
+// Fazer backup de todos os clientes
+export async function backupAllClientes() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const allClientes = await db.select().from(clientes);
+  
+  for (const cliente of allClientes) {
+    await backupCliente(cliente.id);
+  }
+  
+  return allClientes.length;
+}
+
+// Registrar sincronização
+export async function logSync(entityType: string, entityId: number, action: string, status: string, errorMessage?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.insert(syncLog).values({
+    entityType: entityType as any,
+    entityId,
+    action: action as any,
+    status: status as any,
+    errorMessage,
+    createdAt: new Date(),
+    syncedAt: status === 'synced' ? new Date() : null,
+  });
+}
+
+// Obter logs de sincronização pendentes
+export async function getPendingSyncLogs() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(syncLog).where(eq(syncLog.status, 'pending'));
+}
+
+// Obter logs de sincronização com erro
+export async function getFailedSyncLogs() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(syncLog).where(eq(syncLog.status, 'failed'));
+}
+
+// Atualizar status de sincronização
+export async function updateSyncStatus(syncLogId: number, status: string, errorMessage?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.update(syncLog)
+    .set({
+      status: status as any,
+      errorMessage,
+      syncedAt: status === 'synced' ? new Date() : null,
+    })
+    .where(eq(syncLog.id, syncLogId));
+}
+
+// Obter estatísticas de sincronização
+export async function getSyncStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, synced: 0, pending: 0, failed: 0 };
+  
+  const all = await db.select().from(syncLog);
+  const synced = all.filter(log => log.status === 'synced').length;
+  const pending = all.filter(log => log.status === 'pending').length;
+  const failed = all.filter(log => log.status === 'failed').length;
+  
+  return {
+    total: all.length,
+    synced,
+    pending,
+    failed,
+  };
+}
+
+// Restaurar cliente do backup
+export async function restoreClienteFromBackup(clienteId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const backup = await db.select().from(clientesBackup).where(eq(clientesBackup.id, clienteId)).limit(1);
+  if (!backup || backup.length === 0) return null;
+  
+  const backupData = backup[0];
+  
+  // Atualizar cliente com dados do backup
+  const result = await db.update(clientes)
+    .set({
+      nome: backupData.nome,
+      email: backupData.email,
+      regime: backupData.regime,
+      setor: backupData.setor,
+      valor: backupData.valor,
+      vencimento: backupData.vencimento,
+      status: backupData.status,
+      updatedAt: new Date(),
+    })
+    .where(eq(clientes.id, clienteId));
+  
+  return result;
+}
+
+// Obter todos os backups
+export async function getAllBackups() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(clientesBackup);
+}
+
+// Obter backup por ID
+export async function getBackupById(clienteId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const backup = await db.select().from(clientesBackup).where(eq(clientesBackup.id, clienteId)).limit(1);
+  return backup && backup.length > 0 ? backup[0] : null;
 }

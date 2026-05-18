@@ -8,6 +8,11 @@ import {
   deleteCliente,
   linkObrigacoesToChecklistByRegime,
   logAuditAction,
+  backupCliente,
+  logSync,
+  getAllBackups,
+  getBackupById,
+  restoreClienteFromBackup,
 } from "../db";
 
 const clienteSchema = z.object({
@@ -58,6 +63,16 @@ export const clientesRouter = router({
             description: `Empresa criada: ${input.nome}`,
             changes: input,
           });
+          
+          // Fazer backup automático
+          try {
+            await backupCliente(clienteId);
+            await logSync('cliente', clienteId, 'create', 'synced');
+            console.log(`Backup realizado para cliente ${clienteId}`);
+          } catch (backupError) {
+            console.error("Erro ao fazer backup:", backupError);
+            await logSync('cliente', clienteId, 'create', 'failed', String(backupError));
+          }
         } catch (error) {
           console.error("Erro ao vincular obrigações ao checklist:", error);
         }
@@ -99,6 +114,15 @@ export const clientesRouter = router({
         changes: input.data,
       });
       
+      // Fazer backup automatico
+      try {
+        await backupCliente(input.id);
+        await logSync('cliente', input.id, 'update', 'synced');
+      } catch (backupError) {
+        console.error("Erro ao fazer backup:", backupError);
+        await logSync('cliente', input.id, 'update', 'failed', String(backupError));
+      }
+      
       // Normalizar valor para número
       return {
         ...result,
@@ -120,6 +144,15 @@ export const clientesRouter = router({
         entityId: input.id,
         description: `Empresa deletada`,
       });
+      
+      // Fazer backup automatico antes de deletar
+      try {
+        await backupCliente(input.id);
+        await logSync('cliente', input.id, 'delete', 'synced');
+      } catch (backupError) {
+        console.error("Erro ao fazer backup:", backupError);
+        await logSync('cliente', input.id, 'delete', 'failed', String(backupError));
+      }
       
       return {
         ...result,
