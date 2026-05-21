@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, BarChart3, FileText, DollarSign, CheckSquare, Users } from "lucide-react";
 import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { AlertRow, AlertIndicator } from "@/components/AlertBadge";
