@@ -3,6 +3,6 @@ builder = "nixpacks"
 buildCommand = "pnpm install --no-frozen-lockfile && pnpm run build"
 
 [deploy]
-startCommand = "pnpm run db:push && node dist/index.js"
+startCommand = "node dist/index.js"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
