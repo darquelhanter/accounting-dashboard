@@ -13,9 +13,22 @@ if (!url) {
   process.exit(0);
 }
 
+async function connectWithRetry(retries = 10, delayMs = 3000) {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      console.log(`[migrate] Tentativa ${i}/${retries} de conexão...`);
+      return await mysql.createConnection(url!);
+    } catch (err: any) {
+      if (i === retries) throw err;
+      console.warn(`[migrate] Falhou (${err.code}), aguardando ${delayMs}ms...`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  throw new Error("Não foi possível conectar ao banco");
+}
+
 try {
-  console.log("[migrate] Conectando ao banco...");
-  const connection = await mysql.createConnection(url);
+  const connection = await connectWithRetry();
   console.log("[migrate] Conexão estabelecida.");
 
   await connection.execute(`
