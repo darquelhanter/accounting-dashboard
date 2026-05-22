@@ -93,6 +93,20 @@ export const appRouter = router({
             });
           }
 
+          if (user.status === 'pending') {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Sua conta ainda não foi aprovada. Aguarde a aprovação do administrador.",
+            });
+          }
+
+          if (user.status === 'rejected') {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Sua conta foi rejeitada. Entre em contato com o administrador.",
+            });
+          }
+
           // Atualizar lastSignedIn
           await db.upsertUser({
             openId: user.openId,

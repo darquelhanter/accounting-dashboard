@@ -12,14 +12,16 @@ export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   
+  const isApproved = isAuthenticated && user?.status === 'approved';
+
   // Carregar alertas
   const { data: alertasSumario } = trpc.alertas.sumario.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isApproved,
   });
-  
+
   // Carregar KPIs
   const { data: kpis } = trpc.alertas.kpis.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isApproved,
   });
 
   if (!isAuthenticated) {

@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Clock, XCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,6 +86,51 @@ export default function DashboardLayout({
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
             Sign in
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.status === 'pending') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full text-center">
+          <div className="rounded-full bg-yellow-100 p-4">
+            <Clock className="h-10 w-10 text-yellow-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Conta aguardando aprovação</h1>
+            <p className="text-muted-foreground mt-2">
+              Sua conta foi criada com sucesso! O administrador precisa aprovar seu acesso antes de você continuar.
+            </p>
+            <p className="text-sm text-muted-foreground mt-4">
+              Conectado como: <span className="font-medium text-foreground">{user.email || user.name}</span>
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => { window.location.href = "/login"; }}>
+            Sair
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (user.status === 'rejected') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-6 p-8 max-w-md w-full text-center">
+          <div className="rounded-full bg-red-100 p-4">
+            <XCircle className="h-10 w-10 text-red-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Acesso negado</h1>
+            <p className="text-muted-foreground mt-2">
+              Sua solicitação de acesso foi rejeitada. Entre em contato com o administrador para mais informações.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => { window.location.href = "/login"; }}>
+            Sair
           </Button>
         </div>
       </div>
