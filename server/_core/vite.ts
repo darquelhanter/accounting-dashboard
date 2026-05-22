@@ -1,4 +1,3 @@
-cat > server/_core/vite.ts << 'EOF'
 import express, { type Express } from "express";
 import fs from "fs";
 import { type Server } from "http";
@@ -53,4 +52,3 @@ export function serveStatic(app: Express) {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
-EOF
