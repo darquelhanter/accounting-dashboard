@@ -200,6 +200,16 @@ export async function deleteUsers(userIds: number[]) {
   return userIds.length;
 }
 
+// Retorna todos os clienteIds que o usuário pode acessar (próprios + compartilhados)
+export async function getAccessibleClienteIds(userId: number): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const proprios = await db.select({ id: clientes.id }).from(clientes).where(eq(clientes.userId, userId));
+  const perms = await db.select({ clienteId: clientePermissions.clienteId })
+    .from(clientePermissions).where(eq(clientePermissions.userId, userId));
+  return [...new Set([...proprios.map(c => c.id), ...perms.map(p => p.clienteId)])];
+}
+
 // Clientes
 export async function getClientesByUser(userId: number) {
   const db = await getDb();
@@ -233,7 +243,22 @@ export async function deleteCliente(id: number) {
 export async function getObrigacoesByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(obrigacoes).where(eq(obrigacoes.userId, userId));
+
+  const proprias = await db.select().from(obrigacoes).where(eq(obrigacoes.userId, userId));
+
+  // Incluir obrigações dos donos de clientes compartilhados
+  const perms = await db.select({ clienteId: clientePermissions.clienteId })
+    .from(clientePermissions).where(eq(clientePermissions.userId, userId));
+  if (perms.length === 0) return proprias;
+
+  const donoRows = await db.select({ userId: clientes.userId }).from(clientes)
+    .where(inArray(clientes.id, perms.map(p => p.clienteId)));
+  const donoIds = [...new Set(donoRows.map(d => d.userId))].filter(id => id !== userId);
+  if (donoIds.length === 0) return proprias;
+
+  const doDono = await db.select().from(obrigacoes).where(inArray(obrigacoes.userId, donoIds));
+  const todas = [...proprias, ...doDono];
+  return Array.from(new Map(todas.map(o => [o.id, o])).values());
 }
 
 export async function createObrigacao(data: any) {
@@ -264,10 +289,23 @@ export async function getChecklistByUser(userId: number) {
 export async function getChecklistByUserAndMonth(userId: number, mes: string, ano: number) {
   const db = await getDb();
   if (!db) return [];
+
+  // Clientes próprios + compartilhados
+  const proprios = await db.select({ id: clientes.id }).from(clientes).where(eq(clientes.userId, userId));
+  const perms = await db.select({ clienteId: clientePermissions.clienteId })
+    .from(clientePermissions).where(eq(clientePermissions.userId, userId));
+
+  const clienteIds = [...new Set([
+    ...proprios.map(c => c.id),
+    ...perms.map(p => p.clienteId),
+  ])];
+
+  if (clienteIds.length === 0) return [];
+
   return db.select().from(checklistObrigacoes)
     .where(
       and(
-        eq(checklistObrigacoes.userId, userId),
+        inArray(checklistObrigacoes.clienteId, clienteIds),
         eq(checklistObrigacoes.mes, mes),
         eq(checklistObrigacoes.ano, ano)
       )
@@ -309,7 +347,9 @@ export async function deleteChecklistItem(id: number) {
 export async function getMensalidadesByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  const clienteIds = await getAccessibleClienteIds(userId);
+  if (clienteIds.length === 0) return [];
+  return db.select().from(controleMensalidades).where(inArray(controleMensalidades.clienteId, clienteIds));
 }
 
 export async function createMensalidade(data: any) {
@@ -333,10 +373,12 @@ export async function deleteMensalidade(id: number) {
 export async function getMensalidadesByUserAndMonth(userId: number, mes: string, ano: number) {
   const db = await getDb();
   if (!db) return [];
+  const clienteIds = await getAccessibleClienteIds(userId);
+  if (clienteIds.length === 0) return [];
   return db.select().from(controleMensalidades)
     .where(
       and(
-        eq(controleMensalidades.userId, userId),
+        inArray(controleMensalidades.clienteId, clienteIds),
         eq(controleMensalidades.mes, mes),
         eq(controleMensalidades.ano, ano)
       )
@@ -356,21 +398,27 @@ export async function getMensalidadesByCliente(clienteId: number, mes?: string, 
 export async function getMensalidadesByStatus(userId: number, status: string) {
   const db = await getDb();
   if (!db) return [];
-  const all = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  const clienteIds = await getAccessibleClienteIds(userId);
+  if (clienteIds.length === 0) return [];
+  const all = await db.select().from(controleMensalidades).where(inArray(controleMensalidades.clienteId, clienteIds));
   return all.filter(m => m.status === status);
 }
 
 export async function getMensalidadesPendentes(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  const all = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  const clienteIds = await getAccessibleClienteIds(userId);
+  if (clienteIds.length === 0) return [];
+  const all = await db.select().from(controleMensalidades).where(inArray(controleMensalidades.clienteId, clienteIds));
   return all.filter(m => m.status === "Pendente" || m.status === "Atrasado");
 }
 
 export async function getTotalMensalidadesByUser(userId: number) {
   const db = await getDb();
   if (!db) return { total: 0, pago: 0, pendente: 0, atrasado: 0 };
-  const mensalidades = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
+  const clienteIds = await getAccessibleClienteIds(userId);
+  if (clienteIds.length === 0) return { total: 0, pago: 0, pendente: 0, atrasado: 0 };
+  const mensalidades = await db.select().from(controleMensalidades).where(inArray(controleMensalidades.clienteId, clienteIds));
   
   let total = 0;
   let pago = 0;
@@ -393,8 +441,8 @@ export async function getTotalMensalidadesByUser(userId: number) {
 export async function getObrigacoesProximasVencimento(userId: number, diasAntecedencia: number = 7) {
   const db = await getDb();
   if (!db) return [];
-  
-  const obrigacoesList = await db.select().from(obrigacoes).where(eq(obrigacoes.userId, userId));
+
+  const obrigacoesList = await getObrigacoesByUser(userId);
   
   const hoje = new Date();
   const proximosDias = new Date(hoje.getTime() + diasAntecedencia * 24 * 60 * 60 * 1000);
@@ -420,19 +468,25 @@ export async function getObrigacoesProximasVencimento(userId: number, diasAntece
 export async function getMensalidadesAtrasadas(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
+
+  const clienteIds = await getAccessibleClienteIds(userId);
+  if (clienteIds.length === 0) return [];
+
   const mensalidades = await db.select().from(controleMensalidades)
-    .where(eq(controleMensalidades.userId, userId));
-  
+    .where(inArray(controleMensalidades.clienteId, clienteIds));
+
   return mensalidades.filter(m => m.status === "Atrasado");
 }
 
 export async function getMensalidadesPendentesProximas(userId: number, diasAntecedencia: number = 3) {
   const db = await getDb();
   if (!db) return [];
-  
+
+  const clienteIds = await getAccessibleClienteIds(userId);
+  if (clienteIds.length === 0) return [];
+
   const mensalidades = await db.select().from(controleMensalidades)
-    .where(eq(controleMensalidades.userId, userId));
+    .where(inArray(controleMensalidades.clienteId, clienteIds));
   
   const hoje = new Date();
   const proximosDias = new Date(hoje.getTime() + diasAntecedencia * 24 * 60 * 60 * 1000);
@@ -480,22 +534,25 @@ export async function getKpisData(userId: number) {
   }
 
   try {
-    // Total de clientes
-    const clientesList = await db.select().from(clientes).where(eq(clientes.userId, userId));
-    const totalClientes = clientesList.length;
+    const clienteIds = await getAccessibleClienteIds(userId);
+    const totalClientes = clienteIds.length;
 
-    // Obrigações pendentes (próximas do vencimento nos próximos 7 dias)
     const obrigacoesProximas = await getObrigacoesProximasVencimento(userId, 7);
     const obrigacoesPendentes = obrigacoesProximas.length;
 
-    // Mensalidades atrasadas
-    const mensalidadesList = await db.select().from(controleMensalidades).where(eq(controleMensalidades.userId, userId));
-    const mensalidadesAtrasadas = mensalidadesList.filter((m: any) => m.status === "Atrasado").length;
+    let mensalidadesAtrasadas = 0;
+    let taxaConclusao = 0;
 
-    // Taxa de conclusão do checklist
-    const checklistItems = await db.select().from(checklistObrigacoes).where(eq(checklistObrigacoes.userId, userId));
-    const checklistConcluidos = checklistItems.filter((item: any) => item.status === "Done").length;
-    const taxaConclusao = checklistItems.length > 0 ? Math.round((checklistConcluidos / checklistItems.length) * 100) : 0;
+    if (clienteIds.length > 0) {
+      const mensalidadesList = await db.select().from(controleMensalidades)
+        .where(inArray(controleMensalidades.clienteId, clienteIds));
+      mensalidadesAtrasadas = mensalidadesList.filter((m: any) => m.status === "Atrasado").length;
+
+      const checklistItems = await db.select().from(checklistObrigacoes)
+        .where(inArray(checklistObrigacoes.clienteId, clienteIds));
+      const checklistConcluidos = checklistItems.filter((item: any) => item.status === "Done").length;
+      taxaConclusao = checklistItems.length > 0 ? Math.round((checklistConcluidos / checklistItems.length) * 100) : 0;
+    }
 
     return {
       totalClientes,
