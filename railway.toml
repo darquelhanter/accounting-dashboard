@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pnpm install --no-frozen-lockfile --force && pnpm run build && esbuild scripts/migrate.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/migrate.js"
+buildCommand = "pnpm install --no-frozen-lockfile --force && pnpm run build"
 
 [deploy]
 startCommand = "node dist/migrate.js && node dist/index.js"
