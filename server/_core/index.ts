@@ -62,6 +62,16 @@ async function runMigrations() {
         console.log(`[migrate] ✓ ${tag}`);
       }
 
+      // Auto-aprovar owner se configurado
+      const ownerEmail = process.env.OWNER_EMAIL;
+      if (ownerEmail) {
+        await connection.execute(
+          "UPDATE users SET status = 'approved', role = 'admin' WHERE email = ? AND (status = 'pending' OR role != 'admin')",
+          [ownerEmail]
+        );
+        console.log(`[migrate] Owner ${ownerEmail} aprovado como admin.`);
+      }
+
       await connection.end();
       console.log("[migrate] Concluído!");
       return;
