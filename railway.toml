@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pnpm install --no-frozen-lockfile --force && pnpm run build"
+buildCommand = "pnpm install --no-frozen-lockfile --force && pnpm run build && pnpm run db:push"
 
 [deploy]
 startCommand = "node dist/index.js"
