@@ -20,7 +20,7 @@ async function runMigrations() {
   if (!url) return;
   console.log(`[migrate] Usando: ${url.replace(/:\/\/.*@/, "://*****@")}`);
 
-  const migrationsFolder = path.resolve(__dirname, "../../drizzle");
+  const migrationsFolder = path.resolve(__dirname, "../drizzle");
 
   for (let i = 1; i <= 10; i++) {
     try {
