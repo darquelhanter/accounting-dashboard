@@ -88,7 +88,6 @@ export default function Mensalidades() {
   });
 
   const { data: clientes } = trpc.clientes.list.useQuery();
-  const { data: totals } = trpc.mensalidades.getTotals.useQuery();
   
   // Carregar alertas de mensalidades
   const { data: mensalidadesAtrasadas = [] } = trpc.alertas.mensalidadesAtrasadas.useQuery();
@@ -183,6 +182,19 @@ export default function Mensalidades() {
       return matchesStatus && matchesCliente && matchesSearch;
     });
   }, [mensalidades, selectedStatus, selectedCliente, searchTerm, clientes]);
+
+  // Totais do mês selecionado (calculado das mensalidades já carregadas)
+  const totaisMes = useMemo(() => {
+    const lista = mensalidades ?? [];
+    let pago = 0, pendente = 0, atrasado = 0;
+    for (const m of lista) {
+      const v = typeof m.valor === "number" ? m.valor : parseFloat(String(m.valor));
+      if (m.status === "Pago") pago += v;
+      else if (m.status === "Pendente") pendente += v;
+      else if (m.status === "Atrasado") atrasado += v;
+    }
+    return { pago, pendente, atrasado, aReceber: pendente + atrasado };
+  }, [mensalidades]);
 
   // Pagination
   const totalPages = Math.ceil(filteredMensalidades.length / ITEMS_PER_PAGE);
@@ -393,25 +405,25 @@ export default function Mensalidades() {
         </Dialog>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs mensais */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
+            <CardTitle className="text-sm font-medium text-blue-600">A Receber</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {(totals?.total || 0).toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Todas as mensalidades</p>
+            <div className="text-2xl font-bold text-blue-600">R$ {totaisMes.aReceber.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">{selectedMes} {selectedAno}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-green-600">Pago</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-600">Recebido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">R$ {(totals?.pago || 0).toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Mensalidades pagas</p>
+            <div className="text-2xl font-bold text-green-600">R$ {totaisMes.pago.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">{selectedMes} {selectedAno}</p>
           </CardContent>
         </Card>
 
@@ -420,8 +432,8 @@ export default function Mensalidades() {
             <CardTitle className="text-sm font-medium text-yellow-600">Pendente</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">R$ {(totals?.pendente || 0).toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Aguardando pagamento</p>
+            <div className="text-2xl font-bold text-yellow-600">R$ {totaisMes.pendente.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">{selectedMes} {selectedAno}</p>
           </CardContent>
         </Card>
 
@@ -430,8 +442,8 @@ export default function Mensalidades() {
             <CardTitle className="text-sm font-medium text-red-600">Atrasado</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">R$ {(totals?.atrasado || 0).toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Mensalidades atrasadas</p>
+            <div className="text-2xl font-bold text-red-600">R$ {totaisMes.atrasado.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">{selectedMes} {selectedAno}</p>
           </CardContent>
         </Card>
       </div>
