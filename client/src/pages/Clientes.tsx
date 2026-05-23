@@ -49,7 +49,11 @@ interface ClienteForm {
   vencimento: string;
   status: "Ativo" | "Inativo";
   obrigacaoIds: number[];
+  mesesMensalidade: number[];
 }
+
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+               "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const initialForm: ClienteForm = {
   nome: "",
@@ -59,6 +63,7 @@ const initialForm: ClienteForm = {
   vencimento: "10",
   status: "Ativo",
   obrigacaoIds: [],
+  mesesMensalidade: Array.from({ length: 12 }, (_, i) => i),
 };
 
 const regimes = ["Simples", "Lucro Presumido", "Lucro Real", "MEI"];
@@ -68,7 +73,7 @@ export default function Clientes() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ClienteForm>(initialForm);
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"Ativo" | "Inativo">("Ativo");
   const [filterRegime, setFilterRegime] = useState<string>("Todos");
@@ -195,6 +200,7 @@ export default function Clientes() {
         vencimento: cliente.vencimento.toString(),
         status: cliente.status,
         obrigacaoIds: [],
+        mesesMensalidade: Array.from({ length: 12 }, (_, i) => i),
       });
       setStep(1);
     } else {
@@ -226,6 +232,7 @@ export default function Clientes() {
           ...form,
           vencimento: parseInt(form.vencimento),
           obrigacaoIds: form.obrigacaoIds,
+          mesesMensalidade: form.mesesMensalidade,
         });
         toast.success("Cliente criado com sucesso!");
       }
@@ -275,7 +282,7 @@ export default function Clientes() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingId ? "Editar Cliente" : `Novo Cliente ${!editingId ? `— Passo ${step}/2` : ""}`}
+                {editingId ? "Editar Cliente" : `Novo Cliente — Passo ${step}/3`}
               </DialogTitle>
             </DialogHeader>
 
@@ -413,6 +420,64 @@ export default function Clientes() {
 
                 <div className="flex gap-2 pt-2">
                   <Button onClick={() => setStep(1)} variant="outline" className="flex-1">
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
+                  </Button>
+                  <Button onClick={() => setStep(3)} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                    Próximo <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* PASSO 3: selecionar meses de mensalidade */}
+            {!editingId && step === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-slate-600 mb-3">
+                    Selecione os meses para criar mensalidades de <strong>{form.nome}</strong> (R$ {parseFloat(form.valor || "0").toFixed(2)}/mês).
+                  </p>
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, mesesMensalidade: Array.from({ length: 12 }, (_, i) => i) }))}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Selecionar todos
+                    </button>
+                    <span className="text-xs text-slate-400">·</span>
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, mesesMensalidade: [] }))}
+                      className="text-xs text-slate-500 hover:underline"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {MESES.map((mes, idx) => (
+                      <label key={mes} className="flex items-center gap-2 p-2 border rounded-md hover:bg-slate-50 cursor-pointer">
+                        <Checkbox
+                          checked={form.mesesMensalidade.includes(idx)}
+                          onCheckedChange={() => {
+                            setForm(f => ({
+                              ...f,
+                              mesesMensalidade: f.mesesMensalidade.includes(idx)
+                                ? f.mesesMensalidade.filter(m => m !== idx)
+                                : [...f.mesesMensalidade, idx].sort((a, b) => a - b),
+                            }));
+                          }}
+                        />
+                        <span className="text-sm">{mes}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    {form.mesesMensalidade.length} mês(es) selecionado(s)
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={() => setStep(2)} variant="outline" className="flex-1">
                     <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
                   </Button>
                   <Button

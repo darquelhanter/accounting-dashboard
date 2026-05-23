@@ -28,6 +28,7 @@ const clienteSchema = z.object({
   vencimento: z.number().min(1).max(31),
   status: z.enum(["Ativo", "Inativo"]).optional(),
   obrigacaoIds: z.array(z.number()).optional(),
+  mesesMensalidade: z.array(z.number().min(0).max(11)).optional(),
 });
 
 export const clientesRouter = router({
@@ -63,13 +64,14 @@ export const clientesRouter = router({
             // Compatibilidade: se não enviou obrigacaoIds, usa o comportamento antigo por regime
             await linkObrigacoesToChecklistByRegime(clienteId, input.regime);
           }
-          // Criar mensalidades dos 12 meses com o valor do cliente
+          // Criar mensalidades nos meses selecionados
           const anoAtual = new Date().getFullYear();
-          for (const mes of MESES) {
+          const mesesIndices = input.mesesMensalidade ?? Array.from({ length: 12 }, (_, i) => i);
+          for (const idx of mesesIndices) {
             await createMensalidade({
               userId: ctx.user.id,
               clienteId,
-              mes,
+              mes: MESES[idx],
               ano: anoAtual,
               valor: valor,
               status: "Pendente",
