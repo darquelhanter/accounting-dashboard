@@ -9,6 +9,7 @@ import {
   linkObrigacoesToChecklistByRegime,
   linkObrigacoesByIds,
   createMensalidade,
+  getMensalidadesByCliente,
   logAuditAction,
   backupCliente,
   logSync,
@@ -64,18 +65,23 @@ export const clientesRouter = router({
             // Compatibilidade: se não enviou obrigacaoIds, usa o comportamento antigo por regime
             await linkObrigacoesToChecklistByRegime(clienteId, input.regime);
           }
-          // Criar mensalidades nos meses selecionados
+          // Criar mensalidades nos meses selecionados (sem duplicar)
           const anoAtual = new Date().getFullYear();
           const mesesIndices = input.mesesMensalidade ?? Array.from({ length: 12 }, (_, i) => i);
+          const existentes = await getMensalidadesByCliente(clienteId, undefined, anoAtual);
+          const mesesExistentes = new Set(existentes.map((m: any) => m.mes));
           for (const idx of mesesIndices) {
-            await createMensalidade({
-              userId: ctx.user.id,
-              clienteId,
-              mes: MESES[idx],
-              ano: anoAtual,
-              valor: valor,
-              status: "Pendente",
-            });
+            const mes = MESES[idx];
+            if (!mesesExistentes.has(mes)) {
+              await createMensalidade({
+                userId: ctx.user.id,
+                clienteId,
+                mes,
+                ano: anoAtual,
+                valor: valor,
+                status: "Pendente",
+              });
+            }
           }
 
           // Log auditoria
