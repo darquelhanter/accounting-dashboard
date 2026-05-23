@@ -34,7 +34,7 @@ const clienteSchema = z.object({
 
 export const clientesRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    const clientes = await getClientesByUserWithPermissions(ctx.user.id);
+    const clientes = await getClientesByUserWithPermissions(ctx.user.id, ctx.user.role === 'admin');
     // Normalizar valor para número (MySQL DECIMAL retorna como string)
     return clientes.map((cliente: any) => ({
       ...cliente,

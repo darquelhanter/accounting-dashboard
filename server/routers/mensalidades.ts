@@ -15,7 +15,7 @@ import {
 export const mensalidadesRouter = router({
   // Listar todas as mensalidades do usuário
   list: protectedProcedure.query(async ({ ctx }) => {
-    return getMensalidadesByUser(ctx.user.id);
+    return getMensalidadesByUser(ctx.user.id, ctx.user.role === 'admin');
   }),
 
   // Listar mensalidades por mês e ano
@@ -27,7 +27,7 @@ export const mensalidadesRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      return getMensalidadesByUserAndMonth(ctx.user.id, input.mes, input.ano);
+      return getMensalidadesByUserAndMonth(ctx.user.id, input.mes, input.ano, ctx.user.role === 'admin');
     }),
 
   // Listar mensalidades por cliente
@@ -51,17 +51,17 @@ export const mensalidadesRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      return getMensalidadesByStatus(ctx.user.id, input.status);
+      return getMensalidadesByStatus(ctx.user.id, input.status, ctx.user.role === 'admin');
     }),
 
   // Listar mensalidades pendentes e atrasadas
   listPendentes: protectedProcedure.query(async ({ ctx }) => {
-    return getMensalidadesPendentes(ctx.user.id);
+    return getMensalidadesPendentes(ctx.user.id, ctx.user.role === 'admin');
   }),
 
   // Obter totais de mensalidades
   getTotals: protectedProcedure.query(async ({ ctx }) => {
-    return getTotalMensalidadesByUser(ctx.user.id);
+    return getTotalMensalidadesByUser(ctx.user.id, ctx.user.role === 'admin');
   }),
 
   // Criar mensalidade

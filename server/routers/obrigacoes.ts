@@ -18,13 +18,13 @@ const obrigacaoSchema = z.object({
 
 export const obrigacoesRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return getObrigacoesByUser(ctx.user.id);
+    return getObrigacoesByUser(ctx.user.id, ctx.user.role === 'admin');
   }),
 
   listByRegime: protectedProcedure
     .input(z.object({ regime: z.string() }))
     .query(async ({ ctx, input }) => {
-      const todasObrigacoes = await getObrigacoesByUser(ctx.user.id);
+      const todasObrigacoes = await getObrigacoesByUser(ctx.user.id, ctx.user.role === 'admin');
       return todasObrigacoes.filter((o: any) => o.regime === input.regime || o.regime === "Todos");
     }),
 

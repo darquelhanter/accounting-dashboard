@@ -29,7 +29,7 @@ export const checklistRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      return getChecklistByUserAndMonth(ctx.user.id, input.mes, input.ano);
+      return getChecklistByUserAndMonth(ctx.user.id, input.mes, input.ano, ctx.user.role === 'admin');
     }),
 
   listByCliente: protectedProcedure
