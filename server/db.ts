@@ -686,6 +686,43 @@ export async function linkObrigacoesToChecklistByRegime(clienteId: number, regim
   }
 }
 
+export async function linkObrigacoesByIds(clienteId: number, obrigacaoIds: number[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const cliente = await db.select().from(clientes).where(eq(clientes.id, clienteId));
+  if (!cliente.length) throw new Error(`Cliente ${clienteId} não encontrado`);
+  const userId = cliente[0].userId;
+
+  if (obrigacaoIds.length === 0) return [];
+
+  const selecionadas = await db.select().from(obrigacoes).where(inArray(obrigacoes.id, obrigacaoIds));
+
+  const anoAtual = new Date().getFullYear();
+  const mesesNomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                       "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+  const checklistItems: any[] = [];
+  for (const obrigacao of selecionadas) {
+    if (obrigacao.periodicidade === "Mensal") {
+      for (let mes = 0; mes < 12; mes++) {
+        checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: mesesNomes[mes], ano: anoAtual, status: "Pendente" });
+      }
+    } else if (obrigacao.periodicidade === "Anual") {
+      checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: "Dezembro", ano: anoAtual, status: "Pendente" });
+    } else if (obrigacao.periodicidade === "Contínuo") {
+      for (const mesIdx of [2, 5, 8, 11]) {
+        checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: mesesNomes[mesIdx], ano: anoAtual, status: "Pendente" });
+      }
+    }
+  }
+
+  if (checklistItems.length > 0) {
+    await db.insert(checklistObrigacoes).values(checklistItems);
+  }
+  return checklistItems;
+}
+
 
 // Funções de Permissões de Empresas
 export async function grantClienteAccess(clienteId: number, userId: number, canView: boolean = true, canEdit: boolean = false, canDelete: boolean = false) {

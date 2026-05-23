@@ -7,6 +7,7 @@ import {
   updateCliente,
   deleteCliente,
   linkObrigacoesToChecklistByRegime,
+  linkObrigacoesByIds,
   logAuditAction,
   backupCliente,
   logSync,
@@ -22,6 +23,7 @@ const clienteSchema = z.object({
   valor: z.string().or(z.number()),
   vencimento: z.number().min(1).max(31),
   status: z.enum(["Ativo", "Inativo"]).optional(),
+  obrigacaoIds: z.array(z.number()).optional(),
 });
 
 export const clientesRouter = router({
@@ -51,7 +53,13 @@ export const clientesRouter = router({
       const clienteId = (result as any)?.id;
       if (clienteId) {
         try {
-          await linkObrigacoesToChecklistByRegime(clienteId, input.regime);
+          if (input.obrigacaoIds && input.obrigacaoIds.length > 0) {
+            await linkObrigacoesByIds(clienteId, input.obrigacaoIds);
+          } else if (input.obrigacaoIds === undefined) {
+            // Compatibilidade: se não enviou obrigacaoIds, usa o comportamento antigo por regime
+            await linkObrigacoesToChecklistByRegime(clienteId, input.regime);
+          }
+          // Se obrigacaoIds for array vazio, não vincula nenhuma obrigação
           console.log(`Obrigações vinculadas ao checklist para cliente ${clienteId}`);
           // Log auditoria
           await logAuditAction({

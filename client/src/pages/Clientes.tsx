@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2, Trash } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Trash, ChevronRight, ChevronLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
@@ -48,6 +48,7 @@ interface ClienteForm {
   valor: string;
   vencimento: string;
   status: "Ativo" | "Inativo";
+  obrigacaoIds: number[];
 }
 
 const initialForm: ClienteForm = {
@@ -57,6 +58,7 @@ const initialForm: ClienteForm = {
   valor: "",
   vencimento: "10",
   status: "Ativo",
+  obrigacaoIds: [],
 };
 
 const regimes = ["Simples", "Lucro Presumido", "Lucro Real", "MEI"];
@@ -66,6 +68,7 @@ export default function Clientes() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ClienteForm>(initialForm);
+  const [step, setStep] = useState<1 | 2>(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"Ativo" | "Inativo">("Ativo");
   const [filterRegime, setFilterRegime] = useState<string>("Todos");
@@ -75,6 +78,7 @@ export default function Clientes() {
 
   const utils = trpc.useUtils();
   const { data: clientes = [], isLoading } = trpc.clientes.list.useQuery();
+  const { data: todasObrigacoes = [] } = trpc.obrigacoes.list.useQuery();
   const createMutation = trpc.clientes.create.useMutation();
   const updateMutation = trpc.clientes.update.useMutation();
   const deleteMutation = trpc.clientes.delete.useMutation();
@@ -160,6 +164,26 @@ export default function Clientes() {
     setCurrentPage(1);
   };
 
+  const obrigacoesFiltradas = useMemo(() => {
+    return todasObrigacoes.filter((o: any) => o.regime === form.regime || o.regime === "Todos");
+  }, [todasObrigacoes, form.regime]);
+
+  const handleRegimeChange = (regime: ClienteForm["regime"]) => {
+    const ids = todasObrigacoes
+      .filter((o: any) => o.regime === regime || o.regime === "Todos")
+      .map((o: any) => o.id);
+    setForm(f => ({ ...f, regime, obrigacaoIds: ids }));
+  };
+
+  const toggleObrigacao = (id: number) => {
+    setForm(f => ({
+      ...f,
+      obrigacaoIds: f.obrigacaoIds.includes(id)
+        ? f.obrigacaoIds.filter(x => x !== id)
+        : [...f.obrigacaoIds, id],
+    }));
+  };
+
   const handleOpenDialog = (cliente?: any) => {
     if (cliente) {
       setEditingId(cliente.id);
@@ -170,10 +194,16 @@ export default function Clientes() {
         valor: cliente.valor.toString(),
         vencimento: cliente.vencimento.toString(),
         status: cliente.status,
+        obrigacaoIds: [],
       });
+      setStep(1);
     } else {
       setEditingId(null);
-      setForm(initialForm);
+      const defaultIds = todasObrigacoes
+        .filter((o: any) => o.regime === "Simples" || o.regime === "Todos")
+        .map((o: any) => o.id);
+      setForm({ ...initialForm, obrigacaoIds: defaultIds });
+      setStep(1);
     }
     setIsOpen(true);
   };
@@ -188,22 +218,24 @@ export default function Clientes() {
       if (editingId) {
         await updateMutation.mutateAsync({
           id: editingId,
-          data: {
-            ...form,
-            vencimento: parseInt(form.vencimento),
-          },
+          data: { ...form, vencimento: parseInt(form.vencimento) },
         });
         toast.success("Cliente atualizado com sucesso!");
       } else {
         await createMutation.mutateAsync({
           ...form,
           vencimento: parseInt(form.vencimento),
+          obrigacaoIds: form.obrigacaoIds,
         });
         toast.success("Cliente criado com sucesso!");
       }
       utils.clientes.list.invalidate();
       setIsOpen(false);
-      setForm(initialForm);
+      const defaultIds = todasObrigacoes
+        .filter((o: any) => o.regime === "Simples" || o.regime === "Todos")
+        .map((o: any) => o.id);
+      setForm({ ...initialForm, obrigacaoIds: defaultIds });
+      setStep(1);
       setCurrentPage(1);
     } catch (error) {
       toast.error("Erro ao salvar cliente");
@@ -243,109 +275,156 @@ export default function Clientes() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingId ? "Editar Cliente" : "Novo Cliente"}
+                {editingId ? "Editar Cliente" : `Novo Cliente ${!editingId ? `— Passo ${step}/2` : ""}`}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700">Nome *</label>
-                <Input
-                  value={form.nome}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  placeholder="Nome da empresa"
-                  className="mt-1"
-                />
-              </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700">Regime *</label>
-                <Select value={form.regime} onValueChange={(value) => setForm({ ...form, regime: value as any })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regimes.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* PASSO 1: dados do cliente */}
+            {(editingId || step === 1) && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Nome *</label>
+                  <Input
+                    value={form.nome}
+                    onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                    placeholder="Nome da empresa"
+                    className="mt-1"
+                  />
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700">Setor</label>
-                <Select value={form.setor} onValueChange={(value) => setForm({ ...form, setor: value as any })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Fiscal">Fiscal</SelectItem>
-                    <SelectItem value="Trabalhista">Trabalhista</SelectItem>
-                    <SelectItem value="Contábil">Contábil</SelectItem>
-                    <SelectItem value="Geral">Geral</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Regime *</label>
+                  <Select value={form.regime} onValueChange={(v) => handleRegimeChange(v as any)}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {regimes.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700">Valor Mensalidade (R$) *</label>
-                <Input
-                  type="number"
-                  value={form.valor}
-                  onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                  placeholder="0.00"
-                  className="mt-1"
-                />
-              </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Setor</label>
+                  <Select value={form.setor} onValueChange={(v) => setForm({ ...form, setor: v as any })}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Fiscal">Fiscal</SelectItem>
+                      <SelectItem value="Trabalhista">Trabalhista</SelectItem>
+                      <SelectItem value="Contábil">Contábil</SelectItem>
+                      <SelectItem value="Geral">Geral</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700">Vencimento (dia do mês) *</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={form.vencimento}
-                  onChange={(e) => setForm({ ...form, vencimento: e.target.value })}
-                  placeholder="10"
-                  className="mt-1"
-                />
-              </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Valor Mensalidade (R$) *</label>
+                  <Input
+                    type="number"
+                    value={form.valor}
+                    onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                    placeholder="0.00"
+                    className="mt-1"
+                  />
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-slate-700">Status</label>
-                <Select value={form.status} onValueChange={(value) => setForm({ ...form, status: value as any })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Ativo">Ativo</SelectItem>
-                    <SelectItem value="Inativo">Inativo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Vencimento (dia do mês) *</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={form.vencimento}
+                    onChange={(e) => setForm({ ...form, vencimento: e.target.value })}
+                    placeholder="10"
+                    className="mt-1"
+                  />
+                </div>
 
-              <div className="flex gap-2 pt-4">
-                <Button
-                  onClick={handleSave}
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  {createMutation.isPending || updateMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Status</label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as any })}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ativo">Ativo</SelectItem>
+                      <SelectItem value="Inativo">Inativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  {editingId ? (
+                    <>
+                      <Button onClick={handleSave} disabled={updateMutation.isPending} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                        {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Atualizar"}
+                      </Button>
+                      <Button onClick={() => setIsOpen(false)} variant="outline" className="flex-1">Cancelar</Button>
+                    </>
                   ) : (
-                    editingId ? "Atualizar" : "Criar"
+                    <>
+                      <Button
+                        onClick={() => {
+                          if (!form.nome || !form.valor || !form.vencimento) {
+                            toast.error("Preencha todos os campos obrigatórios");
+                            return;
+                          }
+                          setStep(2);
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      >
+                        Próximo <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                      <Button onClick={() => setIsOpen(false)} variant="outline" className="flex-1">Cancelar</Button>
+                    </>
                   )}
-                </Button>
-                <Button
-                  onClick={() => setIsOpen(false)}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* PASSO 2: selecionar obrigações (apenas criação) */}
+            {!editingId && step === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-slate-600 mb-3">
+                    Selecione as obrigações para <strong>{form.nome}</strong> ({form.regime}).
+                    As marcadas são as recomendadas para o regime.
+                  </p>
+                  <div className="border rounded-md divide-y max-h-72 overflow-y-auto">
+                    {obrigacoesFiltradas.length === 0 ? (
+                      <p className="text-sm text-slate-500 p-4 text-center">Nenhuma obrigação cadastrada para este regime.</p>
+                    ) : (
+                      obrigacoesFiltradas.map((o: any) => (
+                        <label key={o.id} className="flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer">
+                          <Checkbox
+                            checked={form.obrigacaoIds.includes(o.id)}
+                            onCheckedChange={() => toggleObrigacao(o.id)}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800">{o.nome}</p>
+                            <p className="text-xs text-slate-500">{o.categoria} · {o.periodicidade}</p>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    {form.obrigacaoIds.length} obrigação(ões) selecionada(s)
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={() => setStep(1)} variant="outline" className="flex-1">
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={createMutation.isPending}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Criar Cliente"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
