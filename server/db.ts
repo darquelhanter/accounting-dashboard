@@ -629,53 +629,38 @@ export async function linkObrigacoesToChecklistByRegime(clienteId: number, regim
       return [];
     }
 
-    const checklistItems: any[] = [];
     const anoAtual = new Date().getFullYear();
     const mesesNomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                          "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-    // Para cada obrigação, criar entradas no checklist
+    // Carregar itens já existentes para evitar duplicatas
+    const existentes = await db.select({ obrigacaoId: checklistObrigacoes.obrigacaoId, mes: checklistObrigacoes.mes })
+      .from(checklistObrigacoes)
+      .where(and(eq(checklistObrigacoes.clienteId, clienteId), eq(checklistObrigacoes.ano, anoAtual)));
+    const existentesSet = new Set(existentes.map(e => `${e.obrigacaoId}-${e.mes}`));
+
+    const checklistItems: any[] = [];
     for (const obrigacao of obrigacoesDoRegime) {
-      // Se a obrigação é mensal, criar entradas para todos os 12 meses
       if (obrigacao.periodicidade === "Mensal") {
         for (let mes = 0; mes < 12; mes++) {
-          checklistItems.push({
-            userId,
-            clienteId,
-            obrigacaoId: obrigacao.id,
-            mes: mesesNomes[mes],
-            ano: anoAtual,
-            status: "Pendente",
-          });
+          const key = `${obrigacao.id}-${mesesNomes[mes]}`;
+          if (!existentesSet.has(key))
+            checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: mesesNomes[mes], ano: anoAtual, status: "Pendente" });
         }
       } else if (obrigacao.periodicidade === "Anual") {
-        // Se é anual, criar apenas uma entrada para o ano atual
-        checklistItems.push({
-          userId,
-          clienteId,
-          obrigacaoId: obrigacao.id,
-          mes: "Dezembro",
-          ano: anoAtual,
-          status: "Pendente",
-        });
+        const key = `${obrigacao.id}-Dezembro`;
+        if (!existentesSet.has(key))
+          checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: "Dezembro", ano: anoAtual, status: "Pendente" });
       } else if (obrigacao.periodicidade === "Contínuo") {
-        // Se é contínuo, criar 4 entradas (meses 3, 6, 9, 12)
         for (const mesIdx of [2, 5, 8, 11]) {
-          checklistItems.push({
-            userId,
-            clienteId,
-            obrigacaoId: obrigacao.id,
-            mes: mesesNomes[mesIdx],
-            ano: anoAtual,
-            status: "Pendente",
-          });
+          const key = `${obrigacao.id}-${mesesNomes[mesIdx]}`;
+          if (!existentesSet.has(key))
+            checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: mesesNomes[mesIdx], ano: anoAtual, status: "Pendente" });
         }
       }
     }
 
-    // Inserir todos os itens do checklist
     if (checklistItems.length > 0) {
-      console.log(`Criando ${checklistItems.length} entradas no checklist para cliente ${clienteId}`);
       await db.insert(checklistObrigacoes).values(checklistItems);
     }
 
@@ -702,17 +687,28 @@ export async function linkObrigacoesByIds(clienteId: number, obrigacaoIds: numbe
   const mesesNomes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+  const existentes = await db.select({ obrigacaoId: checklistObrigacoes.obrigacaoId, mes: checklistObrigacoes.mes })
+    .from(checklistObrigacoes)
+    .where(and(eq(checklistObrigacoes.clienteId, clienteId), eq(checklistObrigacoes.ano, anoAtual)));
+  const existentesSet = new Set(existentes.map(e => `${e.obrigacaoId}-${e.mes}`));
+
   const checklistItems: any[] = [];
   for (const obrigacao of selecionadas) {
     if (obrigacao.periodicidade === "Mensal") {
       for (let mes = 0; mes < 12; mes++) {
-        checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: mesesNomes[mes], ano: anoAtual, status: "Pendente" });
+        const key = `${obrigacao.id}-${mesesNomes[mes]}`;
+        if (!existentesSet.has(key))
+          checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: mesesNomes[mes], ano: anoAtual, status: "Pendente" });
       }
     } else if (obrigacao.periodicidade === "Anual") {
-      checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: "Dezembro", ano: anoAtual, status: "Pendente" });
+      const key = `${obrigacao.id}-Dezembro`;
+      if (!existentesSet.has(key))
+        checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: "Dezembro", ano: anoAtual, status: "Pendente" });
     } else if (obrigacao.periodicidade === "Contínuo") {
       for (const mesIdx of [2, 5, 8, 11]) {
-        checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: mesesNomes[mesIdx], ano: anoAtual, status: "Pendente" });
+        const key = `${obrigacao.id}-${mesesNomes[mesIdx]}`;
+        if (!existentesSet.has(key))
+          checklistItems.push({ userId, clienteId, obrigacaoId: obrigacao.id, mes: mesesNomes[mesIdx], ano: anoAtual, status: "Pendente" });
       }
     }
   }
