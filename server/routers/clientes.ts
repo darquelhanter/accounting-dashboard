@@ -8,6 +8,7 @@ import {
   deleteCliente,
   linkObrigacoesToChecklistByRegime,
   linkObrigacoesByIds,
+  createMensalidade,
   logAuditAction,
   backupCliente,
   logSync,
@@ -15,6 +16,9 @@ import {
   getBackupById,
   restoreClienteFromBackup,
 } from "../db";
+
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const clienteSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -59,8 +63,19 @@ export const clientesRouter = router({
             // Compatibilidade: se não enviou obrigacaoIds, usa o comportamento antigo por regime
             await linkObrigacoesToChecklistByRegime(clienteId, input.regime);
           }
-          // Se obrigacaoIds for array vazio, não vincula nenhuma obrigação
-          console.log(`Obrigações vinculadas ao checklist para cliente ${clienteId}`);
+          // Criar mensalidades dos 12 meses com o valor do cliente
+          const anoAtual = new Date().getFullYear();
+          for (const mes of MESES) {
+            await createMensalidade({
+              userId: ctx.user.id,
+              clienteId,
+              mes,
+              ano: anoAtual,
+              valor: valor,
+              status: "Pendente",
+            });
+          }
+
           // Log auditoria
           await logAuditAction({
             userId: ctx.user.id,

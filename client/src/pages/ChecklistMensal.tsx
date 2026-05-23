@@ -61,9 +61,6 @@ interface ChecklistForm {
   ano: number;
   status: "Feito" | "Pendente" | "Em Progresso" | "Bloqueado" | "N/A";
   responsavel: string;
-  horaInicial: string;
-  horaFinal: string;
-  totalHoras: string;
   mesesSelecionados?: number[];
 }
 
@@ -75,9 +72,6 @@ const initialForm: ChecklistForm = {
   ano: new Date().getFullYear(),
   status: "Pendente",
   responsavel: "",
-  horaInicial: "",
-  horaFinal: "",
-  totalHoras: "",
   mesesSelecionados: [],
 };
 
@@ -167,9 +161,6 @@ export default function ChecklistMensal() {
         ano: item.ano,
         status: item.status,
         responsavel: item.responsavel || "",
-        horaInicial: item.horaInicial || "",
-        horaFinal: item.horaFinal || "",
-        totalHoras: item.totalHoras?.toString() || "",
       });
     } else {
       setEditingId(null);
@@ -197,24 +188,20 @@ export default function ChecklistMensal() {
       if (editingId) {
         await updateMutation.mutateAsync({
           id: editingId,
-          data: {
-            ...form,
-            totalHoras: form.totalHoras ? parseFloat(form.totalHoras) : undefined,
-          },
+          data: { ...form },
         });
         toast.success("Item atualizado com sucesso!");
       } else {
         const mesesSelecionados = form.mesesSelecionados || [];
         const obrigacaoIds = form.obrigacaoIds && form.obrigacaoIds.length > 0 ? form.obrigacaoIds : [form.obrigacaoId];
         let totalCriados = 0;
-        
+
         for (const obrigacaoId of obrigacaoIds) {
           for (const mesIndex of mesesSelecionados) {
             await createMutation.mutateAsync({
               ...form,
-              obrigacaoId: obrigacaoId,
+              obrigacaoId,
               mes: MESES[mesIndex],
-              totalHoras: form.totalHoras ? parseFloat(form.totalHoras) : undefined,
             });
             totalCriados++;
           }
@@ -384,39 +371,6 @@ export default function ChecklistMensal() {
                   value={form.responsavel}
                   onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
                   placeholder="Nome do responsável"
-                  className="mt-1"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Hora Inicial</label>
-                  <Input
-                    type="time"
-                    value={form.horaInicial}
-                    onChange={(e) => setForm({ ...form, horaInicial: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Hora Final</label>
-                  <Input
-                    type="time"
-                    value={form.horaFinal}
-                    onChange={(e) => setForm({ ...form, horaFinal: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-700">Total de Horas</label>
-                <Input
-                  type="number"
-                  step="0.5"
-                  value={form.totalHoras}
-                  onChange={(e) => setForm({ ...form, totalHoras: e.target.value })}
-                  placeholder="0.00"
                   className="mt-1"
                 />
               </div>
@@ -639,7 +593,6 @@ export default function ChecklistMensal() {
                       <TableHead>Obrigação</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Responsável</TableHead>
-                      <TableHead>Horas</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -672,7 +625,6 @@ export default function ChecklistMensal() {
                             </Select>
                           </TableCell>
                           <TableCell>{item.responsavel || "-"}</TableCell>
-                          <TableCell>{item.totalHoras ? `${item.totalHoras}h` : "-"}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
                               <Button
