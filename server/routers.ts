@@ -9,6 +9,7 @@ import { alertasRouter } from "./routers/alertas";
 import { adminRouter } from "./routers/admin";
 import { notificacoesRouter } from "./routers/notificacoes";
 import { notificacaoConfigsRouter } from "./routers/notificacaoConfigs";
+import { servicosRouter } from "./routers/servicos";
 import { z } from "zod";
 import * as db from "./db";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
@@ -28,6 +29,7 @@ export const appRouter = router({
   admin: adminRouter,
   notificacoes: notificacoesRouter,
   notificacaoConfigs: router(notificacaoConfigsRouter),
+  servicos: servicosRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

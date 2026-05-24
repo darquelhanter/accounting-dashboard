@@ -19,6 +19,7 @@ import UserApproval from "./pages/UserApproval";
 import ClientePermissions from "./pages/ClientePermissions";
 import AuditLog from "./pages/AuditLog";
 import BackupMonitor from "./pages/BackupMonitor";
+import ServicosPrestados from "./pages/ServicosPrestados";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -38,6 +39,7 @@ function Router() {
       <Route path={"/cliente-permissions"} component={() => <DashboardLayout><ClientePermissions /></DashboardLayout>} />
       <Route path={"/audit-log"} component={() => <DashboardLayout><AuditLog /></DashboardLayout>} />
       <Route path={"/backup-monitor"} component={() => <DashboardLayout><BackupMonitor /></DashboardLayout>} />
+      <Route path={"/servicos-prestados"} component={() => <DashboardLayout><ServicosPrestados /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

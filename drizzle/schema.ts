@@ -153,6 +153,25 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = typeof auditLog.$inferInsert;
 
 
+// Tabela de Serviços Prestados (Esporádicos)
+export const servicosPrestados = mysqlTable("servicos_prestados", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  nomeServico: varchar("nomeServico", { length: 255 }).notNull(),
+  descricao: text("descricao"),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  mes: varchar("mes", { length: 20 }).notNull(),
+  ano: int("ano").notNull(),
+  status: mysqlEnum("status", ["Pago", "Pendente", "Atrasado"]).default("Pendente"),
+  dataPagamento: timestamp("dataPagamento"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ServicoPrestado = typeof servicosPrestados.$inferSelect;
+export type InsertServicoPrestado = typeof servicosPrestados.$inferInsert;
+
 // ===== TABELAS DE BACKUP =====
 // Tabela de Backup de Clientes
 export const clientesBackup = mysqlTable("clientes_backup", {

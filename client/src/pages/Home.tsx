@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BarChart3, FileText, DollarSign, CheckSquare, Users } from "lucide-react";
+import { ArrowRight, BarChart3, FileText, DollarSign, CheckSquare, Users, Briefcase } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
@@ -216,24 +216,24 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/servicos-prestados")}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-cyan-600" />
-                    Importar Excel
+                    <Briefcase className="h-5 w-5 text-cyan-600" />
+                    Serviços Prestados
                   </CardTitle>
-                  <CardDescription>Carregar dados da planilha</CardDescription>
+                  <CardDescription>Cobranças esporádicas por cliente</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-4">
-                Importe dados da sua planilha Excel para sincronizar com o sistema.
+                Registre serviços avulsos como alteração contratual, baixa de empresa, regularização e outros com valor e mês definidos.
               </p>
               <div className="flex items-center text-cyan-600 font-medium text-sm">
-                Em breve <ArrowRight className="h-4 w-4 ml-2" />
+                Acessar <ArrowRight className="h-4 w-4 ml-2" />
               </div>
             </CardContent>
           </Card>

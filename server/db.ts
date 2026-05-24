@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1065,4 +1065,46 @@ export async function getBackupById(clienteId: number) {
   
   const backup = await db.select().from(clientesBackup).where(eq(clientesBackup.id, clienteId)).limit(1);
   return backup && backup.length > 0 ? backup[0] : null;
+}
+
+// ===== SERVIÇOS PRESTADOS =====
+
+export async function getServicosPrestadosByUser(userId: number, isAdmin: boolean = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
+  if (clienteIds.length === 0) return [];
+  return db.select().from(servicosPrestados).where(inArray(servicosPrestados.clienteId, clienteIds));
+}
+
+export async function getServicosPrestadosByUserAndMonth(userId: number, mes: string, ano: number, isAdmin: boolean = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
+  if (clienteIds.length === 0) return [];
+  return db.select().from(servicosPrestados).where(
+    and(
+      inArray(servicosPrestados.clienteId, clienteIds),
+      eq(servicosPrestados.mes, mes),
+      eq(servicosPrestados.ano, ano)
+    )
+  );
+}
+
+export async function createServicoPrestado(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(servicosPrestados).values(data);
+}
+
+export async function updateServicoPrestado(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(servicosPrestados).set(data).where(eq(servicosPrestados.id, id));
+}
+
+export async function deleteServicoPrestado(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(servicosPrestados).where(eq(servicosPrestados.id, id));
 }
