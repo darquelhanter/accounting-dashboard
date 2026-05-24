@@ -129,18 +129,17 @@ export function AlertDetailsModal({
                   )}
                   {type === "atrasado" && (
                     <>
-                      <TableHead>Cliente</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Mês/Ano</TableHead>
                       <TableHead>Valor (R$)</TableHead>
-                      <TableHead>Vencimento</TableHead>
-                      <TableHead>Dias Atrasado</TableHead>
                       <TableHead>Status</TableHead>
                     </>
                   )}
                   {type === "pendente" && (
                     <>
-                      <TableHead>Cliente</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Mês/Ano</TableHead>
                       <TableHead>Valor (R$)</TableHead>
-                      <TableHead>Vencimento</TableHead>
                       <TableHead>Status</TableHead>
                     </>
                   )}
@@ -180,26 +179,17 @@ export function AlertDetailsModal({
                     {type === "atrasado" && (
                       <>
                         <TableCell className="font-medium">
-                          {item.clienteNome || item.cliente?.nome || "-"}
+                          {item.clienteNome || "-"}
                         </TableCell>
                         <TableCell>
-                          R$ {typeof item.valor === 'number' ? item.valor.toFixed(2) : "0.00"}
+                          {item.mes}/{item.ano}
                         </TableCell>
                         <TableCell>
-                          {item.vencimento
-                            ? new Date(item.vencimento).toLocaleDateString(
-                                "pt-BR"
-                              )
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="destructive">
-                            {item.diasAtrasado || "-"} dias
-                          </Badge>
+                          R$ {parseFloat(item.valor ?? "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Atrasado
+                            {item.status === "Atrasado" ? "Atrasado" : "Pendente (atrasado)"}
                           </span>
                         </TableCell>
                       </>
@@ -207,17 +197,13 @@ export function AlertDetailsModal({
                     {type === "pendente" && (
                       <>
                         <TableCell className="font-medium">
-                          {item.clienteNome || item.cliente?.nome || "-"}
+                          {item.clienteNome || "-"}
                         </TableCell>
                         <TableCell>
-                          R$ {typeof item.valor === 'number' ? item.valor.toFixed(2) : "0.00"}
+                          {item.mes}/{item.ano}
                         </TableCell>
                         <TableCell>
-                          {item.vencimento
-                            ? new Date(item.vencimento).toLocaleDateString(
-                                "pt-BR"
-                              )
-                            : "-"}
+                          R$ {parseFloat(item.valor ?? "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell>
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

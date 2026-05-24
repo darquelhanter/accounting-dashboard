@@ -480,7 +480,31 @@ export async function getMensalidadesAtrasadas(userId: number, isAdmin: boolean 
   const mensalidades = await db.select().from(controleMensalidades)
     .where(inArray(controleMensalidades.clienteId, clienteIds));
 
-  return mensalidades.filter(m => m.status === "Atrasado");
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth() + 1;
+
+  const atrasadas = mensalidades.filter(m => {
+    if (m.status === "Atrasado") return true;
+    if (m.status === "Pendente") {
+      const mesIdx = MESES_NOMES.indexOf(m.mes);
+      if (mesIdx === -1) return false;
+      const mesNum = mesIdx + 1;
+      return m.ano < anoAtual || (m.ano === anoAtual && mesNum < mesAtual);
+    }
+    return false;
+  });
+
+  // Enriquecer com nome do cliente
+  const clientesRows = clienteIds.length > 0
+    ? await db.select({ id: clientes.id, nome: clientes.nome }).from(clientes).where(inArray(clientes.id, clienteIds))
+    : [];
+  const clienteMap = new Map(clientesRows.map(c => [c.id, c.nome]));
+
+  return atrasadas.map(m => ({
+    ...m,
+    clienteNome: clienteMap.get(m.clienteId) ?? "-",
+  }));
 }
 
 export async function getMensalidadesPendentesProximas(userId: number, diasAntecedencia: number = 3, isAdmin: boolean = false) {
@@ -492,22 +516,29 @@ export async function getMensalidadesPendentesProximas(userId: number, diasAntec
 
   const mensalidades = await db.select().from(controleMensalidades)
     .where(inArray(controleMensalidades.clienteId, clienteIds));
-  
+
   const hoje = new Date();
-  const proximosDias = new Date(hoje.getTime() + diasAntecedencia * 24 * 60 * 60 * 1000);
-  
-  return mensalidades.filter(m => {
+  const mesAtual = hoje.getMonth() + 1;
+  const anoAtual = hoje.getFullYear();
+
+  const pendentes = mensalidades.filter(m => {
     if (m.status !== "Pendente") return false;
-
-    const mesAtual = hoje.getMonth() + 1;
-    const anoAtual = hoje.getFullYear();
-
     const mesIdx = MESES_NOMES.indexOf(m.mes);
     if (mesIdx === -1) return false;
     const mesNum = mesIdx + 1;
-
     return (mesNum === mesAtual || mesNum === mesAtual + 1) && m.ano === anoAtual;
   });
+
+  // Enriquecer com nome do cliente
+  const clientesRows = clienteIds.length > 0
+    ? await db.select({ id: clientes.id, nome: clientes.nome }).from(clientes).where(inArray(clientes.id, clienteIds))
+    : [];
+  const clienteMap = new Map(clientesRows.map(c => [c.id, c.nome]));
+
+  return pendentes.map(m => ({
+    ...m,
+    clienteNome: clienteMap.get(m.clienteId) ?? "-",
+  }));
 }
 
 export async function getAlertasSumario(userId: number, isAdmin: boolean = false) {
