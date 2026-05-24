@@ -246,6 +246,25 @@ export const appRouter = router({
         }
         return db.revokeClienteAccess(input.clienteId, input.userId);
       }),
+    grantBulkAccess: protectedProcedure
+      .input(z.object({
+        clienteIds: z.array(z.number()).min(1),
+        userId: z.number(),
+        canView: z.boolean().default(true),
+        canEdit: z.boolean().default(false),
+        canDelete: z.boolean().default(false),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== 'admin') {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'Acesso negado' });
+        }
+        await Promise.all(
+          input.clienteIds.map((clienteId) =>
+            db.grantClienteAccess(clienteId, input.userId, input.canView, input.canEdit, input.canDelete)
+          )
+        );
+        return { success: true, count: input.clienteIds.length };
+      }),
     getClientePermissions: protectedProcedure
       .input(z.object({ clienteId: z.number() }))
       .query(async ({ ctx, input }) => {
