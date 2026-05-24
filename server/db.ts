@@ -437,6 +437,11 @@ export async function getTotalMensalidadesByUser(userId: number, isAdmin: boolea
 }
 
 
+const MESES_NOMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
 // Funções de Alertas
 export async function getObrigacoesProximasVencimento(userId: number, diasAntecedencia: number = 7, isAdmin: boolean = false) {
   const db = await getDb();
@@ -493,15 +498,15 @@ export async function getMensalidadesPendentesProximas(userId: number, diasAntec
   
   return mensalidades.filter(m => {
     if (m.status !== "Pendente") return false;
-    
-    // Considerar mensalidades do mês atual e próximo mês como próximas
+
     const mesAtual = hoje.getMonth() + 1;
     const anoAtual = hoje.getFullYear();
-    
-    const mesNum = parseInt(m.mes.split('/')[0] || '0');
-    const anoNum = parseInt(m.mes.split('/')[1] || '0');
-    
-    return (mesNum === mesAtual || mesNum === mesAtual + 1) && anoNum === anoAtual;
+
+    const mesIdx = MESES_NOMES.indexOf(m.mes);
+    if (mesIdx === -1) return false;
+    const mesNum = mesIdx + 1;
+
+    return (mesNum === mesAtual || mesNum === mesAtual + 1) && m.ano === anoAtual;
   });
 }
 
@@ -537,21 +542,48 @@ export async function getKpisData(userId: number, isAdmin: boolean = false) {
     const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
     const totalClientes = clienteIds.length;
 
-    const obrigacoesProximas = await getObrigacoesProximasVencimento(userId, 7, isAdmin);
-    const obrigacoesPendentes = obrigacoesProximas.length;
-
+    let obrigacoesPendentes = 0;
     let mensalidadesAtrasadas = 0;
     let taxaConclusao = 0;
 
     if (clienteIds.length > 0) {
+      const hoje = new Date();
+      const mesAtualNome = MESES_NOMES[hoje.getMonth()];
+      const anoAtual = hoje.getFullYear();
+
+      // Obrigações Pendentes: itens do checklist no mês atual que não estão Feitos nem N/A
+      const checklistMesAtual = await db.select().from(checklistObrigacoes)
+        .where(
+          and(
+            inArray(checklistObrigacoes.clienteId, clienteIds),
+            eq(checklistObrigacoes.mes, mesAtualNome),
+            eq(checklistObrigacoes.ano, anoAtual)
+          )
+        );
+      obrigacoesPendentes = checklistMesAtual.filter(
+        (item: any) => item.status !== "Feito" && item.status !== "N/A"
+      ).length;
+
+      // Taxa de Conclusão: todos os itens do checklist (não N/A)
+      const todosChecklist = await db.select().from(checklistObrigacoes)
+        .where(inArray(checklistObrigacoes.clienteId, clienteIds));
+      const validos = todosChecklist.filter((item: any) => item.status !== "N/A");
+      const concluidos = validos.filter((item: any) => item.status === "Feito");
+      taxaConclusao = validos.length > 0 ? Math.round((concluidos.length / validos.length) * 100) : 0;
+
+      // Mensalidades Atrasadas: status "Atrasado" OU status "Pendente" de mês/ano já passado
       const mensalidadesList = await db.select().from(controleMensalidades)
         .where(inArray(controleMensalidades.clienteId, clienteIds));
-      mensalidadesAtrasadas = mensalidadesList.filter((m: any) => m.status === "Atrasado").length;
-
-      const checklistItems = await db.select().from(checklistObrigacoes)
-        .where(inArray(checklistObrigacoes.clienteId, clienteIds));
-      const checklistConcluidos = checklistItems.filter((item: any) => item.status === "Done").length;
-      taxaConclusao = checklistItems.length > 0 ? Math.round((checklistConcluidos / checklistItems.length) * 100) : 0;
+      mensalidadesAtrasadas = mensalidadesList.filter((m: any) => {
+        if (m.status === "Atrasado") return true;
+        if (m.status === "Pendente") {
+          const mesIdx = MESES_NOMES.indexOf(m.mes);
+          if (mesIdx === -1) return false;
+          const mesNum = mesIdx + 1;
+          return m.ano < anoAtual || (m.ano === anoAtual && mesNum < hoje.getMonth() + 1);
+        }
+        return false;
+      }).length;
     }
 
     return {
