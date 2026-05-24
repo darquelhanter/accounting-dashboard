@@ -85,6 +85,13 @@
       "when": 1748044800000,
       "tag": "0011_servicos_prestados",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1748131200000,
+      "tag": "0012_documentos",
+      "breakpoints": true
     }
   ]
 }

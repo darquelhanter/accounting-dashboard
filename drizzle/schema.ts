@@ -153,6 +153,23 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = typeof auditLog.$inferInsert;
 
 
+// Tabela de Documentos
+export const documentos = mysqlTable("documentos", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  descricao: text("descricao"),
+  tipo: varchar("tipo", { length: 100 }).notNull(),
+  tamanho: int("tamanho").notNull(),
+  conteudo: text("conteudo").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Documento = typeof documentos.$inferSelect;
+export type InsertDocumento = typeof documentos.$inferInsert;
+
 // Tabela de Serviços Prestados (Esporádicos)
 export const servicosPrestados = mysqlTable("servicos_prestados", {
   id: int("id").autoincrement().primaryKey(),

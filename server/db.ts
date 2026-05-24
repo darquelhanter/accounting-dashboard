@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1128,6 +1128,61 @@ export async function getBackupById(clienteId: number) {
   
   const backup = await db.select().from(clientesBackup).where(eq(clientesBackup.id, clienteId)).limit(1);
   return backup && backup.length > 0 ? backup[0] : null;
+}
+
+// ===== DOCUMENTOS =====
+
+export async function getDocumentosByUser(userId: number, isAdmin: boolean = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
+  if (clienteIds.length === 0) return [];
+  return db.select({
+    id: documentos.id,
+    userId: documentos.userId,
+    clienteId: documentos.clienteId,
+    nome: documentos.nome,
+    descricao: documentos.descricao,
+    tipo: documentos.tipo,
+    tamanho: documentos.tamanho,
+    createdAt: documentos.createdAt,
+    updatedAt: documentos.updatedAt,
+  }).from(documentos).where(inArray(documentos.clienteId, clienteIds));
+}
+
+export async function getDocumentosByCliente(clienteId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: documentos.id,
+    userId: documentos.userId,
+    clienteId: documentos.clienteId,
+    nome: documentos.nome,
+    descricao: documentos.descricao,
+    tipo: documentos.tipo,
+    tamanho: documentos.tamanho,
+    createdAt: documentos.createdAt,
+    updatedAt: documentos.updatedAt,
+  }).from(documentos).where(eq(documentos.clienteId, clienteId));
+}
+
+export async function getDocumentoConteudo(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(documentos).where(eq(documentos.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function createDocumento(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(documentos).values(data);
+}
+
+export async function deleteDocumento(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(documentos).where(eq(documentos.id, id));
 }
 
 // ===== SERVIÇOS PRESTADOS =====

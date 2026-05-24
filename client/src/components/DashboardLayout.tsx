@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, CheckSquare, DollarSign, Settings, Bell, User, Lock, FileText, Database, Briefcase } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, CheckSquare, DollarSign, Settings, Bell, User, Lock, FileText, Database, Briefcase, FolderOpen } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -35,6 +35,7 @@ const menuItems = [
   { icon: CheckSquare, label: "Checklist", path: "/checklist" },
   { icon: DollarSign, label: "Mensalidades", path: "/mensalidades" },
   { icon: Briefcase, label: "Serviços Prestados", path: "/servicos-prestados" },
+  { icon: FolderOpen, label: "Documentos", path: "/documentos" },
   { icon: Bell, label: "Notificações", path: "/notificacao-configs" },
   { icon: Settings, label: "Administração", path: "/admin" },
   { icon: Users, label: "Aprovação de Usuários", path: "/user-approval" },
