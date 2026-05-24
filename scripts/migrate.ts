@@ -8,9 +8,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsFolder = path.resolve(__dirname, "../drizzle");
 
 const url = process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL;
-console.log("[migrate] MYSQL_PUBLIC_URL definido:", !!process.env.MYSQL_PUBLIC_URL);
-console.log("[migrate] DATABASE_URL definido:", !!process.env.DATABASE_URL);
-console.log("[migrate] Usando host:", url ? new URL(url).hostname : "nenhum");
 if (!url) {
   console.warn("[migrate] DATABASE_URL não configurado, pulando migrações.");
   process.exit(0);
