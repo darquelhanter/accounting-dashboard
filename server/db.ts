@@ -1226,3 +1226,128 @@ export async function deleteServicoPrestado(id: number) {
   if (!db) throw new Error("Database not available");
   return db.delete(servicosPrestados).where(eq(servicosPrestados.id, id));
 }
+
+// ===== FLUXO DE CAIXA =====
+
+const MESES_LISTA = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+export async function getFluxoCaixaSummary(userId: number, mes: string, ano: number, isAdmin: boolean = false) {
+  const db = await getDb();
+  if (!db) return { recebido: 0, pendente: 0, atrasado: 0, mensalidadesRecebido: 0, servicosRecebido: 0 };
+
+  const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
+  if (clienteIds.length === 0) return { recebido: 0, pendente: 0, atrasado: 0, mensalidadesRecebido: 0, servicosRecebido: 0 };
+
+  const mensalidades = await db.select().from(controleMensalidades).where(
+    and(inArray(controleMensalidades.clienteId, clienteIds), eq(controleMensalidades.mes, mes), eq(controleMensalidades.ano, ano))
+  );
+
+  const servicos = await db.select().from(servicosPrestados).where(
+    and(inArray(servicosPrestados.clienteId, clienteIds), eq(servicosPrestados.mes, mes), eq(servicosPrestados.ano, ano))
+  );
+
+  let recebido = 0, pendente = 0, atrasado = 0, mensalidadesRecebido = 0, servicosRecebido = 0;
+
+  for (const m of mensalidades) {
+    const v = parseFloat(m.valor?.toString() ?? "0");
+    if (m.status === "Pago") { recebido += v; mensalidadesRecebido += v; }
+    else if (m.status === "Pendente") pendente += v;
+    else if (m.status === "Atrasado") atrasado += v;
+  }
+
+  for (const s of servicos) {
+    const v = parseFloat(s.valor?.toString() ?? "0");
+    if (s.status === "Pago") { recebido += v; servicosRecebido += v; }
+    else if (s.status === "Pendente") pendente += v;
+    else if (s.status === "Atrasado") atrasado += v;
+  }
+
+  return { recebido, pendente, atrasado, mensalidadesRecebido, servicosRecebido };
+}
+
+export async function getFluxoCaixaAnual(userId: number, ano: number, isAdmin: boolean = false) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
+  if (clienteIds.length === 0) return MESES_LISTA.map(mes => ({ mes, recebido: 0, pendente: 0, atrasado: 0 }));
+
+  const mensalidades = await db.select().from(controleMensalidades).where(
+    and(inArray(controleMensalidades.clienteId, clienteIds), eq(controleMensalidades.ano, ano))
+  );
+
+  const servicos = await db.select().from(servicosPrestados).where(
+    and(inArray(servicosPrestados.clienteId, clienteIds), eq(servicosPrestados.ano, ano))
+  );
+
+  return MESES_LISTA.map(mes => {
+    let recebido = 0, pendente = 0, atrasado = 0;
+
+    for (const m of mensalidades.filter(x => x.mes === mes)) {
+      const v = parseFloat(m.valor?.toString() ?? "0");
+      if (m.status === "Pago") recebido += v;
+      else if (m.status === "Pendente") pendente += v;
+      else if (m.status === "Atrasado") atrasado += v;
+    }
+
+    for (const s of servicos.filter(x => x.mes === mes)) {
+      const v = parseFloat(s.valor?.toString() ?? "0");
+      if (s.status === "Pago") recebido += v;
+      else if (s.status === "Pendente") pendente += v;
+      else if (s.status === "Atrasado") atrasado += v;
+    }
+
+    return { mes, recebido, pendente, atrasado };
+  });
+}
+
+export async function getFluxoCaixaTransacoes(userId: number, mes: string, ano: number, isAdmin: boolean = false) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
+  if (clienteIds.length === 0) return [];
+
+  const clientesList = await db.select().from(clientes).where(inArray(clientes.id, clienteIds));
+  const clienteMap = new Map(clientesList.map(c => [c.id, c.nome]));
+
+  const mensalidades = await db.select().from(controleMensalidades).where(
+    and(inArray(controleMensalidades.clienteId, clienteIds), eq(controleMensalidades.mes, mes), eq(controleMensalidades.ano, ano))
+  );
+
+  const servicos = await db.select().from(servicosPrestados).where(
+    and(inArray(servicosPrestados.clienteId, clienteIds), eq(servicosPrestados.mes, mes), eq(servicosPrestados.ano, ano))
+  );
+
+  const transacoes = [
+    ...mensalidades.map(m => ({
+      id: m.id,
+      tipo: "Mensalidade" as const,
+      descricao: "Mensalidade",
+      clienteId: m.clienteId,
+      cliente: clienteMap.get(m.clienteId ?? 0) ?? "-",
+      valor: parseFloat(m.valor?.toString() ?? "0"),
+      status: m.status,
+      dataPagamento: m.dataPagamento,
+      mes: m.mes,
+      ano: m.ano,
+    })),
+    ...servicos.map(s => ({
+      id: s.id,
+      tipo: "Serviço" as const,
+      descricao: s.nomeServico,
+      clienteId: s.clienteId,
+      cliente: clienteMap.get(s.clienteId ?? 0) ?? "-",
+      valor: parseFloat(s.valor?.toString() ?? "0"),
+      status: s.status,
+      dataPagamento: s.dataPagamento,
+      mes: s.mes,
+      ano: s.ano,
+    })),
+  ];
+
+  return transacoes.sort((a, b) => a.cliente.localeCompare(b.cliente));
+}
