@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import {
@@ -128,22 +128,27 @@ export default function Documentos() {
 
   const downloadQuery = trpc.documentos.download.useQuery(
     { id: downloadingId! },
-    {
-      enabled: !!downloadingId,
-      onSuccess: (doc: any) => {
-        const link = document.createElement("a");
-        link.href = doc.conteudo;
-        link.download = doc.nome;
-        link.click();
-        setDownloadingId(null);
-        toast.success("Download iniciado!");
-      },
-      onError: () => {
-        setDownloadingId(null);
-        toast.error("Erro ao baixar documento.");
-      },
-    }
+    { enabled: !!downloadingId }
   );
+
+  useEffect(() => {
+    if (downloadQuery.data && downloadingId) {
+      const doc = downloadQuery.data as any;
+      const link = document.createElement("a");
+      link.href = doc.conteudo;
+      link.download = doc.nome;
+      link.click();
+      setDownloadingId(null);
+      toast.success("Download iniciado!");
+    }
+  }, [downloadQuery.data, downloadingId]);
+
+  useEffect(() => {
+    if (downloadQuery.isError && downloadingId) {
+      setDownloadingId(null);
+      toast.error("Erro ao baixar documento.");
+    }
+  }, [downloadQuery.isError, downloadingId]);
 
   const filtered = rawDocs.filter((d) => {
     const clienteNome = clientes?.find((c) => c.id === d.clienteId)?.nome ?? "";
