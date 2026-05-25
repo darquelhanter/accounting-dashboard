@@ -12,6 +12,7 @@ import { notificacaoConfigsRouter } from "./routers/notificacaoConfigs";
 import { servicosRouter } from "./routers/servicos";
 import { documentosRouter } from "./routers/documentos";
 import { fluxoCaixaRouter } from "./routers/fluxoCaixa";
+import { acessosRouter } from "./routers/acessos";
 import { z } from "zod";
 import * as db from "./db";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
@@ -34,6 +35,7 @@ export const appRouter = router({
   servicos: servicosRouter,
   documentos: documentosRouter,
   fluxoCaixa: fluxoCaixaRouter,
+  acessos: acessosRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

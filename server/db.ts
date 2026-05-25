@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1225,6 +1225,40 @@ export async function deleteServicoPrestado(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.delete(servicosPrestados).where(eq(servicosPrestados.id, id));
+}
+
+// ===== ACESSOS DAS EMPRESAS =====
+
+export async function getAcessosByUser(userId: number, isAdmin: boolean = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
+  if (clienteIds.length === 0) return [];
+  return db.select().from(acessosEmpresas).where(inArray(acessosEmpresas.clienteId, clienteIds));
+}
+
+export async function getAcessosByCliente(clienteId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(acessosEmpresas).where(eq(acessosEmpresas.clienteId, clienteId));
+}
+
+export async function createAcesso(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(acessosEmpresas).values(data);
+}
+
+export async function updateAcesso(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(acessosEmpresas).set(data).where(eq(acessosEmpresas.id, id));
+}
+
+export async function deleteAcesso(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(acessosEmpresas).where(eq(acessosEmpresas.id, id));
 }
 
 // ===== FLUXO DE CAIXA =====

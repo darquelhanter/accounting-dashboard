@@ -189,6 +189,23 @@ export const servicosPrestados = mysqlTable("servicos_prestados", {
 export type ServicoPrestado = typeof servicosPrestados.$inferSelect;
 export type InsertServicoPrestado = typeof servicosPrestados.$inferInsert;
 
+// Tabela de Acessos das Empresas
+export const acessosEmpresas = mysqlTable("acessos_empresas", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  descricao: varchar("descricao", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  senha: varchar("senha", { length: 500 }),
+  telefone: varchar("telefone", { length: 30 }),
+  observacao: text("observacao"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AcessoEmpresa = typeof acessosEmpresas.$inferSelect;
+export type InsertAcessoEmpresa = typeof acessosEmpresas.$inferInsert;
+
 // ===== TABELAS DE BACKUP =====
 // Tabela de Backup de Clientes
 export const clientesBackup = mysqlTable("clientes_backup", {

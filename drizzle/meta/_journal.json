@@ -92,6 +92,13 @@
       "when": 1748131200000,
       "tag": "0012_documentos",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1748217600000,
+      "tag": "0013_acessos_empresas",
+      "breakpoints": true
     }
   ]
 }
