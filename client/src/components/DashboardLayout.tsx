@@ -30,7 +30,7 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Home", path: "/" },
-  { icon: Users, label: "Clientes", path: "/clientes" },
+  { icon: Users, label: "Empresas", path: "/clientes" },
   { icon: LayoutDashboard, label: "Obrigações", path: "/obrigacoes" },
   { icon: CheckSquare, label: "Checklist", path: "/checklist" },
   { icon: DollarSign, label: "Mensalidades", path: "/mensalidades" },

@@ -385,7 +385,7 @@ export default function ServicosPrestados() {
                   onCheckedChange={toggleAll}
                 />
               </TableHead>
-              <TableHead>Cliente</TableHead>
+              <TableHead>Empresa</TableHead>
               <TableHead>Serviço</TableHead>
               <TableHead>Mês/Ano</TableHead>
               <TableHead>Valor</TableHead>
@@ -529,7 +529,7 @@ export default function ServicosPrestados() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div className="space-y-1">
-              <Label>Cliente *</Label>
+              <Label>Empresa *</Label>
               <Select
                 value={formData.clienteId}
                 onValueChange={(v) => setFormData((f) => ({ ...f, clienteId: v }))}

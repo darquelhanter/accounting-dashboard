@@ -298,7 +298,7 @@ export default function Acessos() {
                             )}
                           </div>
                           {acesso.observacao && (
-                            <p className="text-xs text-muted-foreground italic">{acesso.observacao}</p>
+                            <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-sans mt-1 bg-muted/40 rounded px-2 py-1.5 border max-w-md">{acesso.observacao}</pre>
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
@@ -414,13 +414,15 @@ export default function Acessos() {
             </div>
 
             <div className="space-y-1">
-              <Label>Observação</Label>
+              <Label>Notas Livres</Label>
               <Textarea
-                placeholder="Informações adicionais..."
-                rows={2}
+                placeholder={"CNPJ: 00.000.000/0001-00\nCPF: 000.000.000-00\ngov.br: senha123\nPrefeitura: senha456\n..."}
+                rows={6}
                 value={form.observacao}
                 onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value }))}
+                className="font-mono text-sm"
               />
+              <p className="text-xs text-muted-foreground">Cole qualquer informação de acesso em texto livre</p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

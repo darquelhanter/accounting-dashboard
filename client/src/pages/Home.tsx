@@ -64,12 +64,12 @@ export default function Home() {
             onClick={() => navigate("/clientes")}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
+              <CardTitle className="text-sm font-medium">Total de Empresas</CardTitle>
               <Users className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{kpis?.totalClientes || 0}</div>
-              <p className="text-xs text-gray-500">Ver clientes →</p>
+              <p className="text-xs text-gray-500">Ver empresas →</p>
             </CardContent>
           </Card>
 

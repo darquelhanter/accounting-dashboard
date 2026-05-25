@@ -320,7 +320,7 @@ export default function Mensalidades() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Cliente *</label>
+                <label className="text-sm font-medium">Empresa *</label>
                 <Select value={formData.clienteId} onValueChange={(v) => setFormData({ ...formData, clienteId: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um cliente" />
@@ -484,7 +484,7 @@ export default function Mensalidades() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Cliente</label>
+            <label className="text-sm font-medium">Empresa/label>
             <Select value={selectedCliente} onValueChange={setSelectedCliente}>
               <SelectTrigger>
                 <SelectValue />
@@ -518,7 +518,7 @@ export default function Mensalidades() {
           <div>
             <label className="text-sm font-medium">Buscar</label>
             <Input
-              placeholder="Cliente ou valor..."
+              placeholder="Empresa ou valor..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -537,7 +537,7 @@ export default function Mensalidades() {
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
-              <TableHead>Cliente</TableHead>
+              <TableHead>Empresa</TableHead>
               <TableHead>Período</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Status</TableHead>

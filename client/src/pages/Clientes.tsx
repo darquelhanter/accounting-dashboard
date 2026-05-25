@@ -115,11 +115,11 @@ export default function Clientes() {
   const handleDeleteMany = async () => {
     try {
       await deleteManyMutation.mutateAsync({ ids: selectedIds });
-      toast.success(`${selectedIds.length} cliente(s) deletado(s)!`);
+      toast.success(`${selectedIds.length} empresa(s) deletada(s)!`);
       setSelectedIds([]);
       utils.clientes.list.invalidate();
     } catch (error) {
-      toast.error('Erro ao deletar clientes');
+      toast.error('Erro ao deletar empresas');
       console.error(error);
     }
   };
@@ -226,7 +226,7 @@ export default function Clientes() {
           id: editingId,
           data: { ...form, vencimento: parseInt(form.vencimento) },
         });
-        toast.success("Cliente atualizado com sucesso!");
+        toast.success("Empresa atualizada com sucesso!");
       } else {
         await createMutation.mutateAsync({
           ...form,
@@ -234,7 +234,7 @@ export default function Clientes() {
           obrigacaoIds: form.obrigacaoIds,
           mesesMensalidade: form.mesesMensalidade,
         });
-        toast.success("Cliente criado com sucesso!");
+        toast.success("Empresa criada com sucesso!");
       }
       utils.clientes.list.invalidate();
       setIsOpen(false);
@@ -245,7 +245,7 @@ export default function Clientes() {
       setStep(1);
       setCurrentPage(1);
     } catch (error) {
-      toast.error("Erro ao salvar cliente");
+      toast.error("Erro ao salvar empresa");
       console.error(error);
     }
   };
@@ -253,7 +253,7 @@ export default function Clientes() {
   const handleDelete = async (id: number): Promise<void> => {
     try {
       await deleteMutation.mutateAsync({ id });
-      toast.success("Cliente deletado com sucesso!");
+      toast.success("Empresa deletada com sucesso!");
       utils.clientes.list.invalidate();
     } catch (error) {
       toast.error("Erro ao deletar cliente");
@@ -269,20 +269,20 @@ export default function Clientes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Gestão de Clientes</h1>
-          <p className="text-slate-600 mt-1">Cadastre e gerencie seus clientes</p>
+          <h1 className="text-3xl font-bold text-slate-900">Gestão de Empresas</h1>
+          <p className="text-slate-600 mt-1">Cadastre e gerencie suas empresas</p>
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenDialog()} className="gap-2 bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4" />
-              Novo Cliente
+              Nova Empresa
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingId ? "Editar Cliente" : `Novo Cliente — Passo ${step}/3`}
+                {editingId ? "Editar Empresa" : `Nova Empresa — Passo ${step}/3`}
               </DialogTitle>
             </DialogHeader>
 
@@ -485,7 +485,7 @@ export default function Clientes() {
                     disabled={createMutation.isPending}
                     className="flex-1 bg-blue-600 hover:bg-blue-700"
                   >
-                    {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Criar Cliente"}
+                    {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Criar Empresa"}
                   </Button>
                 </div>
               </div>
@@ -530,7 +530,7 @@ export default function Clientes() {
         onClearFilters={handleClearFilters}
       />
 
-      {/* Tabela de Clientes */}
+      {/* Tabela de Empresas */}
       <Card>
         <CardContent className="pt-6">
           {isLoading ? (
@@ -539,7 +539,7 @@ export default function Clientes() {
             </div>
           ) : paginatedClientes.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-slate-600">Nenhum cliente encontrado</p>
+              <p className="text-slate-600">Nenhuma empresa encontrada</p>
             </div>
           ) : (
             <>
@@ -626,7 +626,7 @@ export default function Clientes() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Tem certeza que deseja deletar o cliente "{cliente.nome}"?
+                                    Tem certeza que deseja deletar a empresa "{cliente.nome}"?
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="flex gap-2 justify-end">
@@ -652,7 +652,7 @@ export default function Clientes() {
               {selectedIds.length > 0 && (
                 <div className="flex items-center justify-between mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="text-sm font-medium text-blue-900">
-                    {selectedIds.length} cliente(s) selecionado(s)
+                    {selectedIds.length} empresa(s) selecionada(s)
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
