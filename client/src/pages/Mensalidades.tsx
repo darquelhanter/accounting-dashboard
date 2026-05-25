@@ -484,7 +484,7 @@ export default function Mensalidades() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Empresa/label>
+            <label className="text-sm font-medium">Empresa</label>
             <Select value={selectedCliente} onValueChange={setSelectedCliente}>
               <SelectTrigger>
                 <SelectValue />
