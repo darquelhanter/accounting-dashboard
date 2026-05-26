@@ -20,9 +20,8 @@ import ClientePermissions from "./pages/ClientePermissions";
 import AuditLog from "./pages/AuditLog";
 import BackupMonitor from "./pages/BackupMonitor";
 import ServicosPrestados from "./pages/ServicosPrestados";
-import Documentos from "./pages/Documentos";
+import DocumentosAcessos from "./pages/DocumentosAcessos";
 import FluxoCaixa from "./pages/FluxoCaixa";
-import Acessos from "./pages/Acessos";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -43,9 +42,9 @@ function Router() {
       <Route path={"/audit-log"} component={() => <DashboardLayout><AuditLog /></DashboardLayout>} />
       <Route path={"/backup-monitor"} component={() => <DashboardLayout><BackupMonitor /></DashboardLayout>} />
       <Route path={"/servicos-prestados"} component={() => <DashboardLayout><ServicosPrestados /></DashboardLayout>} />
-      <Route path={"/documentos"} component={() => <DashboardLayout><Documentos /></DashboardLayout>} />
+      <Route path={"/documentos"} component={() => <DashboardLayout><DocumentosAcessos /></DashboardLayout>} />
+      <Route path={"/acessos"} component={() => <DashboardLayout><DocumentosAcessos /></DashboardLayout>} />
       <Route path={"/fluxo-caixa"} component={() => <DashboardLayout><FluxoCaixa /></DashboardLayout>} />
-      <Route path={"/acessos"} component={() => <DashboardLayout><Acessos /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -23,6 +23,7 @@ export const documentosRouter = router({
     .input(
       z.object({
         clienteId: z.number(),
+        pasta: z.string().optional(),
         nome: z.string().min(1),
         descricao: z.string().optional(),
         tipo: z.string(),
@@ -34,6 +35,7 @@ export const documentosRouter = router({
       return createDocumento({
         userId: ctx.user.id,
         clienteId: input.clienteId,
+        pasta: input.pasta ?? null,
         nome: input.nome,
         descricao: input.descricao ?? null,
         tipo: input.tipo,

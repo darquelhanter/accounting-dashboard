@@ -158,6 +158,7 @@ export const documentos = mysqlTable("documentos", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   clienteId: int("clienteId").notNull(),
+  pasta: varchar("pasta", { length: 255 }),
   nome: varchar("nome", { length: 255 }).notNull(),
   descricao: text("descricao"),
   tipo: varchar("tipo", { length: 100 }).notNull(),
