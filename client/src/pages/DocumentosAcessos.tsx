@@ -59,6 +59,7 @@ import {
   Building2,
   FolderPlus,
   ArrowLeft,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -99,6 +100,9 @@ function TabDocumentos() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isNovaPastaOpen, setIsNovaPastaOpen] = useState(false);
   const [novaPastaNome, setNovaPastaNome] = useState("");
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [renameAlvo, setRenameAlvo] = useState("");
+  const [renameNome, setRenameNome] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadDescricao, setUploadDescricao] = useState("");
@@ -137,6 +141,16 @@ function TabDocumentos() {
 
   const deleteManyMutation = trpc.documentos.deleteMany.useMutation({
     onSuccess: () => { refetch(); setSelectedIds([]); toast.success("Documentos excluídos!"); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const renamePastaMutation = trpc.documentos.renamePasta.useMutation({
+    onSuccess: () => {
+      refetch();
+      setIsRenameOpen(false);
+      setPastaAtiva((prev) => prev === renameAlvo ? renameNome.trim() : prev);
+      toast.success("Pasta renomeada!");
+    },
     onError: (err) => toast.error(err.message),
   });
 
@@ -223,6 +237,21 @@ function TabDocumentos() {
     setTimeout(() => fileInputRef.current?.click(), 100);
   }
 
+  function openRename(pasta: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setRenameAlvo(pasta);
+    setRenameNome(pasta);
+    setIsRenameOpen(true);
+  }
+
+  function confirmarRename() {
+    const nome = renameNome.trim();
+    if (!nome) { toast.error("Digite um nome para a pasta."); return; }
+    if (nome === renameAlvo) { setIsRenameOpen(false); return; }
+    if (!clienteId) { toast.error("Selecione uma empresa para renomear."); return; }
+    renamePastaMutation.mutate({ clienteId, oldNome: renameAlvo, newNome: nome });
+  }
+
   function handleFileDrop(e: React.DragEvent) {
     e.preventDefault();
     setIsDragging(false);
@@ -276,10 +305,10 @@ function TabDocumentos() {
 
   const totalSize = rawDocs.reduce((acc, d) => acc + (d.tamanho ?? 0), 0);
   const empresaNome = selectedClienteId === "Todos"
-    ? "Todas"
+    ? "Todas as empresas"
     : clientes?.find((c) => String(c.id) === selectedClienteId)?.nome ?? "—";
 
-  const semEmpresa = !selectedClienteId || selectedClienteId === "Todos";
+  const temEmpresa = !!clienteId;
 
   return (
     <div className="space-y-6">
@@ -307,22 +336,18 @@ function TabDocumentos() {
           )}
         </div>
         <div className="flex gap-2">
-          {pastaAtiva === null && !semEmpresa && (
+          {pastaAtiva === null && temEmpresa && (
             <Button variant="outline" onClick={() => setIsNovaPastaOpen(true)} className="flex items-center gap-2">
               <FolderPlus className="h-4 w-4" />
               Nova Pasta
             </Button>
           )}
-          <Button
-            onClick={() => {
-              if (semEmpresa) { toast.error("Selecione uma empresa para enviar documentos."); return; }
-              fileInputRef.current?.click();
-            }}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Enviar Documento
-          </Button>
+          {temEmpresa && (
+            <Button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Enviar Documento
+            </Button>
+          )}
         </div>
         <input
           ref={fileInputRef}
@@ -418,29 +443,26 @@ function TabDocumentos() {
       </div>
 
       {/* Conteúdo principal */}
-      {semEmpresa ? (
-        <div className="border-2 border-dashed border-gray-200 rounded-lg p-12 text-center text-gray-400">
-          <FolderOpen className="h-10 w-10 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Selecione uma empresa para ver as pastas e documentos</p>
-        </div>
-      ) : pastaAtiva === null ? (
+      {pastaAtiva === null ? (
         /* Vista de pastas */
         <>
-          <div
-            className={`border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer ${
-              isDragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-            }`}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleFileDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className={`h-7 w-7 mx-auto mb-1 ${isDragging ? "text-blue-500" : "text-gray-400"}`} />
-            <p className="text-sm text-gray-500">
-              Arraste um arquivo aqui ou <span className="text-blue-600 underline">clique para selecionar</span>
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">Máximo {MAX_FILE_SIZE_MB}MB</p>
-          </div>
+          {temEmpresa && (
+            <div
+              className={`border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer ${
+                isDragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleFileDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className={`h-7 w-7 mx-auto mb-1 ${isDragging ? "text-blue-500" : "text-gray-400"}`} />
+              <p className="text-sm text-gray-500">
+                Arraste um arquivo aqui ou <span className="text-blue-600 underline">clique para selecionar</span>
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">Máximo {MAX_FILE_SIZE_MB}MB</p>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -449,23 +471,33 @@ function TabDocumentos() {
           ) : pastasExistentes.length === 0 && semPastaCount === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <FolderOpen className="h-10 w-10 mb-2 opacity-30" />
-              <p className="text-sm">Nenhum documento cadastrado para esta empresa.</p>
-              <p className="text-xs mt-1">Clique em "Nova Pasta" ou "Enviar Documento" para começar.</p>
+              <p className="text-sm">Nenhum documento encontrado.</p>
+              {!temEmpresa && <p className="text-xs mt-1">Selecione uma empresa ou envie o primeiro documento.</p>}
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {pastasExistentes.map((pasta) => {
                 const count = rawDocs.filter((d) => d.pasta === pasta).length;
                 return (
-                  <button
-                    key={pasta}
-                    onClick={() => abrirPasta(pasta)}
-                    className="flex flex-col items-center gap-2 p-5 rounded-xl border border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-colors group text-left"
-                  >
-                    <Folder className="h-10 w-10 text-yellow-400 group-hover:text-yellow-500 transition-colors" />
-                    <span className="text-sm font-medium text-gray-800 text-center leading-tight">{pasta}</span>
-                    <Badge variant="secondary" className="text-xs">{count} arquivo{count !== 1 ? "s" : ""}</Badge>
-                  </button>
+                  <div key={pasta} className="relative group">
+                    <button
+                      onClick={() => abrirPasta(pasta)}
+                      className="w-full flex flex-col items-center gap-2 p-5 rounded-xl border border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-colors text-left"
+                    >
+                      <Folder className="h-10 w-10 text-yellow-400 group-hover:text-yellow-500 transition-colors" />
+                      <span className="text-sm font-medium text-gray-800 text-center leading-tight break-all">{pasta}</span>
+                      <Badge variant="secondary" className="text-xs">{count} arquivo{count !== 1 ? "s" : ""}</Badge>
+                    </button>
+                    {temEmpresa && (
+                      <button
+                        onClick={(e) => openRename(pasta, e)}
+                        title="Renomear pasta"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
               {semPastaCount > 0 && (
@@ -484,20 +516,22 @@ function TabDocumentos() {
       ) : (
         /* Vista de documentos dentro de uma pasta */
         <>
-          <div
-            className={`border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer ${
-              isDragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-            }`}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleFileDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className={`h-7 w-7 mx-auto mb-1 ${isDragging ? "text-blue-500" : "text-gray-400"}`} />
-            <p className="text-sm text-gray-500">
-              Arraste um arquivo aqui ou <span className="text-blue-600 underline">clique para selecionar</span>
-            </p>
-          </div>
+          {temEmpresa && (
+            <div
+              className={`border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer ${
+                isDragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleFileDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className={`h-7 w-7 mx-auto mb-1 ${isDragging ? "text-blue-500" : "text-gray-400"}`} />
+              <p className="text-sm text-gray-500">
+                Arraste um arquivo aqui ou <span className="text-blue-600 underline">clique para selecionar</span>
+              </p>
+            </div>
+          )}
 
           <div className="border rounded-lg overflow-hidden">
             <Table>
@@ -624,6 +658,33 @@ function TabDocumentos() {
           )}
         </>
       )}
+
+      {/* Modal Renomear Pasta */}
+      <Dialog open={isRenameOpen} onOpenChange={(v) => { setIsRenameOpen(v); if (!v) { setRenameAlvo(""); setRenameNome(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Renomear Pasta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-1">
+              <Label>Novo nome</Label>
+              <Input
+                placeholder="Nome da pasta"
+                value={renameNome}
+                onChange={(e) => setRenameNome(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && confirmarRename()}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsRenameOpen(false)}>Cancelar</Button>
+              <Button onClick={confirmarRename} disabled={renamePastaMutation.isPending}>
+                {renamePastaMutation.isPending ? "Salvando..." : "Renomear"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Nova Pasta */}
       <Dialog open={isNovaPastaOpen} onOpenChange={(v) => { setIsNovaPastaOpen(v); if (!v) setNovaPastaNome(""); }}>

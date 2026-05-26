@@ -1187,6 +1187,14 @@ export async function deleteDocumento(id: number) {
   return db.delete(documentos).where(eq(documentos.id, id));
 }
 
+export async function renamePastaDocumentos(clienteId: number, oldNome: string, newNome: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(documentos)
+    .set({ pasta: newNome })
+    .where(and(eq(documentos.clienteId, clienteId), eq(documentos.pasta, oldNome)));
+}
+
 // ===== SERVIÇOS PRESTADOS =====
 
 export async function getServicosPrestadosByUser(userId: number, isAdmin: boolean = false) {

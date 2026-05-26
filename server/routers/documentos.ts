@@ -6,6 +6,7 @@ import {
   getDocumentoConteudo,
   createDocumento,
   deleteDocumento,
+  renamePastaDocumentos,
 } from "../db";
 
 export const documentosRouter = router({
@@ -62,5 +63,15 @@ export const documentosRouter = router({
     .input(z.object({ ids: z.array(z.number()) }))
     .mutation(async ({ input }) => {
       return Promise.all(input.ids.map((id) => deleteDocumento(id)));
+    }),
+
+  renamePasta: protectedProcedure
+    .input(z.object({
+      clienteId: z.number(),
+      oldNome: z.string().min(1),
+      newNome: z.string().min(1),
+    }))
+    .mutation(async ({ input }) => {
+      return renamePastaDocumentos(input.clienteId, input.oldNome, input.newNome);
     }),
 });
