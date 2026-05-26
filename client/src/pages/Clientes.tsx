@@ -44,6 +44,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface ClienteForm {
   cnpj: string;
   nome: string;
+  email: string;
+  telefone: string;
+  responsavelId: string;
   regime: "Simples" | "Lucro Presumido" | "Lucro Real" | "MEI";
   setor: "Fiscal" | "Trabalhista" | "Contábil" | "Geral";
   valor: string;
@@ -68,6 +71,9 @@ const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
 const initialForm: ClienteForm = {
   cnpj: "",
   nome: "",
+  email: "",
+  telefone: "",
+  responsavelId: "",
   regime: "Simples",
   setor: "Geral",
   valor: "",
@@ -97,6 +103,7 @@ export default function Clientes() {
   const utils = trpc.useUtils();
   const { data: clientes = [], isLoading } = trpc.clientes.list.useQuery();
   const { data: todasObrigacoes = [] } = trpc.obrigacoes.list.useQuery();
+  const { data: responsaveis = [] } = trpc.responsaveis.list.useQuery();
   const createMutation = trpc.clientes.create.useMutation();
   const updateMutation = trpc.clientes.update.useMutation();
   const deleteMutation = trpc.clientes.delete.useMutation();
@@ -230,6 +237,9 @@ export default function Clientes() {
       setForm({
         cnpj: cliente.cnpj ?? "",
         nome: cliente.nome,
+        email: cliente.email ?? "",
+        telefone: cliente.telefone ?? "",
+        responsavelId: cliente.responsavelId ? String(cliente.responsavelId) : "",
         regime: cliente.regime,
         setor: cliente.setor,
         valor: cliente.valor.toString(),
@@ -260,13 +270,22 @@ export default function Clientes() {
       if (editingId) {
         await updateMutation.mutateAsync({
           id: editingId,
-          data: { ...form, vencimento: parseInt(form.vencimento) },
+          data: {
+            ...form,
+            vencimento: parseInt(form.vencimento),
+            email: form.email || undefined,
+            telefone: form.telefone || undefined,
+            responsavelId: form.responsavelId ? Number(form.responsavelId) : undefined,
+          },
         });
         toast.success("Empresa atualizada com sucesso!");
       } else {
         await createMutation.mutateAsync({
           ...form,
           vencimento: parseInt(form.vencimento),
+          email: form.email || undefined,
+          telefone: form.telefone || undefined,
+          responsavelId: form.responsavelId ? Number(form.responsavelId) : undefined,
           obrigacaoIds: form.obrigacaoIds,
           mesesMensalidade: form.mesesMensalidade,
         });
@@ -373,6 +392,43 @@ export default function Clientes() {
                     placeholder="Nome da empresa"
                     className="mt-1"
                   />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700">E-mail</label>
+                  <Input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="email@empresa.com"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Telefone</label>
+                  <Input
+                    value={form.telefone}
+                    onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                    placeholder="(00) 00000-0000"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700">Responsável</label>
+                  <Select
+                    value={form.responsavelId || "none"}
+                    onValueChange={(v) => setForm({ ...form, responsavelId: v === "none" ? "" : v })}
+                  >
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione um responsável" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {(responsaveis as any[]).map((r: any) => (
+                        <SelectItem key={r.id} value={String(r.id)}>{r.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -633,6 +689,7 @@ export default function Clientes() {
                       <TableHead>CNPJ</TableHead>
                       <TableHead>Regime</TableHead>
                       <TableHead>Setor</TableHead>
+                      <TableHead>Responsável</TableHead>
                       <TableHead>Valor (R$)</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Status</TableHead>
@@ -658,6 +715,11 @@ export default function Clientes() {
                           </span>
                         </TableCell>
                         <TableCell>{cliente.setor}</TableCell>
+                        <TableCell className="text-sm text-slate-600">
+                          {cliente.responsavelId
+                            ? ((responsaveis as any[]).find((r: any) => r.id === cliente.responsavelId)?.nome ?? "—")
+                            : <span className="text-slate-400">—</span>}
+                        </TableCell>
                         <TableCell>R$ {cliente.valor.toFixed(2)}</TableCell>
                         <TableCell>Dia {cliente.vencimento}</TableCell>
                         <TableCell>

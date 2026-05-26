@@ -66,19 +66,27 @@ export default function FluxoCaixa() {
   const [selectedAno, setSelectedAno] = useState(new Date().getFullYear());
   const [filtroTipo, setFiltroTipo] = useState("Todos");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
+  const [filtroResponsavel, setFiltroResponsavel] = useState("Todos");
+
+  const { data: responsaveis = [] } = trpc.responsaveis.list.useQuery();
+
+  const responsavelIdParam = filtroResponsavel !== "Todos" ? Number(filtroResponsavel) : undefined;
 
   const { data: summary, isLoading: loadingSummary } = trpc.fluxoCaixa.getSummary.useQuery({
     mes: selectedMes,
     ano: selectedAno,
+    responsavelId: responsavelIdParam,
   });
 
   const { data: anual, isLoading: loadingAnual } = trpc.fluxoCaixa.getAnual.useQuery({
     ano: selectedAno,
+    responsavelId: responsavelIdParam,
   });
 
   const { data: transacoes, isLoading: loadingTransacoes } = trpc.fluxoCaixa.getTransacoes.useQuery({
     mes: selectedMes,
     ano: selectedAno,
+    responsavelId: responsavelIdParam,
   });
 
   const transacoesFiltradas = useMemo(() => {
@@ -109,7 +117,7 @@ export default function FluxoCaixa() {
             Consolidado de mensalidades e serviços prestados
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={selectedMes} onValueChange={setSelectedMes}>
             <SelectTrigger className="w-36">
               <SelectValue />
@@ -127,6 +135,17 @@ export default function FluxoCaixa() {
             <SelectContent>
               {ANOS.map(a => (
                 <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filtroResponsavel} onValueChange={setFiltroResponsavel}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todos">Todos os responsáveis</SelectItem>
+              {(responsaveis as any[]).map((r: any) => (
+                <SelectItem key={r.id} value={String(r.id)}>{r.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>

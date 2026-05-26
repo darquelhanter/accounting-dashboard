@@ -35,6 +35,8 @@ export const clientes = mysqlTable("clientes", {
   cnpj: varchar("cnpj", { length: 18 }),
   nome: varchar("nome", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }),
+  telefone: varchar("telefone", { length: 20 }),
+  responsavelId: int("responsavelId"),
   regime: mysqlEnum("regime", ["Simples", "Lucro Presumido", "Lucro Real", "MEI"]).notNull(),
   setor: mysqlEnum("setor", ["Fiscal", "Trabalhista", "Contábil", "Geral"]).default("Geral"),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
@@ -207,6 +209,20 @@ export const acessosEmpresas = mysqlTable("acessos_empresas", {
 
 export type AcessoEmpresa = typeof acessosEmpresas.$inferSelect;
 export type InsertAcessoEmpresa = typeof acessosEmpresas.$inferInsert;
+
+// Tabela de Responsáveis Contábeis
+export const responsaveis = mysqlTable("responsaveis", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  telefone: varchar("telefone", { length: 20 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Responsavel = typeof responsaveis.$inferSelect;
+export type InsertResponsavel = typeof responsaveis.$inferInsert;
 
 // ===== TABELAS DE BACKUP =====
 // Tabela de Backup de Clientes

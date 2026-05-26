@@ -22,6 +22,7 @@ import BackupMonitor from "./pages/BackupMonitor";
 import ServicosPrestados from "./pages/ServicosPrestados";
 import DocumentosAcessos from "./pages/DocumentosAcessos";
 import FluxoCaixa from "./pages/FluxoCaixa";
+import Responsaveis from "./pages/Responsaveis";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -45,6 +46,7 @@ function Router() {
       <Route path={"/documentos"} component={() => <DashboardLayout><DocumentosAcessos /></DashboardLayout>} />
       <Route path={"/acessos"} component={() => <DashboardLayout><DocumentosAcessos /></DashboardLayout>} />
       <Route path={"/fluxo-caixa"} component={() => <DashboardLayout><FluxoCaixa /></DashboardLayout>} />
+      <Route path={"/responsaveis"} component={() => <DashboardLayout><Responsaveis /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

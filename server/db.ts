@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1278,19 +1278,29 @@ const MESES_LISTA = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-export async function getFluxoCaixaSummary(userId: number, mes: string, ano: number, isAdmin: boolean = false) {
+export async function getFluxoCaixaSummary(userId: number, mes: string, ano: number, isAdmin: boolean = false, responsavelId?: number) {
   const db = await getDb();
   if (!db) return { recebido: 0, pendente: 0, atrasado: 0, mensalidadesRecebido: 0, servicosRecebido: 0 };
 
   const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
   if (clienteIds.length === 0) return { recebido: 0, pendente: 0, atrasado: 0, mensalidadesRecebido: 0, servicosRecebido: 0 };
 
+  let filteredClienteIds = clienteIds;
+  if (responsavelId) {
+    const clientesDoResponsavel = await db.select({ id: clientes.id })
+      .from(clientes)
+      .where(and(inArray(clientes.id, clienteIds), eq(clientes.responsavelId, responsavelId)));
+    filteredClienteIds = clientesDoResponsavel.map(c => c.id);
+  }
+
+  if (filteredClienteIds.length === 0) return { recebido: 0, pendente: 0, atrasado: 0, mensalidadesRecebido: 0, servicosRecebido: 0 };
+
   const mensalidades = await db.select().from(controleMensalidades).where(
-    and(inArray(controleMensalidades.clienteId, clienteIds), eq(controleMensalidades.mes, mes), eq(controleMensalidades.ano, ano))
+    and(inArray(controleMensalidades.clienteId, filteredClienteIds), eq(controleMensalidades.mes, mes), eq(controleMensalidades.ano, ano))
   );
 
   const servicos = await db.select().from(servicosPrestados).where(
-    and(inArray(servicosPrestados.clienteId, clienteIds), eq(servicosPrestados.mes, mes), eq(servicosPrestados.ano, ano))
+    and(inArray(servicosPrestados.clienteId, filteredClienteIds), eq(servicosPrestados.mes, mes), eq(servicosPrestados.ano, ano))
   );
 
   let recebido = 0, pendente = 0, atrasado = 0, mensalidadesRecebido = 0, servicosRecebido = 0;
@@ -1312,19 +1322,29 @@ export async function getFluxoCaixaSummary(userId: number, mes: string, ano: num
   return { recebido, pendente, atrasado, mensalidadesRecebido, servicosRecebido };
 }
 
-export async function getFluxoCaixaAnual(userId: number, ano: number, isAdmin: boolean = false) {
+export async function getFluxoCaixaAnual(userId: number, ano: number, isAdmin: boolean = false, responsavelId?: number) {
   const db = await getDb();
   if (!db) return [];
 
   const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
   if (clienteIds.length === 0) return MESES_LISTA.map(mes => ({ mes, recebido: 0, pendente: 0, atrasado: 0 }));
 
+  let filteredClienteIds = clienteIds;
+  if (responsavelId) {
+    const clientesDoResponsavel = await db.select({ id: clientes.id })
+      .from(clientes)
+      .where(and(inArray(clientes.id, clienteIds), eq(clientes.responsavelId, responsavelId)));
+    filteredClienteIds = clientesDoResponsavel.map(c => c.id);
+  }
+
+  if (filteredClienteIds.length === 0) return MESES_LISTA.map(mes => ({ mes, recebido: 0, pendente: 0, atrasado: 0 }));
+
   const mensalidades = await db.select().from(controleMensalidades).where(
-    and(inArray(controleMensalidades.clienteId, clienteIds), eq(controleMensalidades.ano, ano))
+    and(inArray(controleMensalidades.clienteId, filteredClienteIds), eq(controleMensalidades.ano, ano))
   );
 
   const servicos = await db.select().from(servicosPrestados).where(
-    and(inArray(servicosPrestados.clienteId, clienteIds), eq(servicosPrestados.ano, ano))
+    and(inArray(servicosPrestados.clienteId, filteredClienteIds), eq(servicosPrestados.ano, ano))
   );
 
   return MESES_LISTA.map(mes => {
@@ -1348,22 +1368,32 @@ export async function getFluxoCaixaAnual(userId: number, ano: number, isAdmin: b
   });
 }
 
-export async function getFluxoCaixaTransacoes(userId: number, mes: string, ano: number, isAdmin: boolean = false) {
+export async function getFluxoCaixaTransacoes(userId: number, mes: string, ano: number, isAdmin: boolean = false, responsavelId?: number) {
   const db = await getDb();
   if (!db) return [];
 
   const clienteIds = await getAccessibleClienteIds(userId, isAdmin);
   if (clienteIds.length === 0) return [];
 
-  const clientesList = await db.select().from(clientes).where(inArray(clientes.id, clienteIds));
+  let filteredClienteIds = clienteIds;
+  if (responsavelId) {
+    const clientesDoResponsavel = await db.select({ id: clientes.id })
+      .from(clientes)
+      .where(and(inArray(clientes.id, clienteIds), eq(clientes.responsavelId, responsavelId)));
+    filteredClienteIds = clientesDoResponsavel.map(c => c.id);
+  }
+
+  if (filteredClienteIds.length === 0) return [];
+
+  const clientesList = await db.select().from(clientes).where(inArray(clientes.id, filteredClienteIds));
   const clienteMap = new Map(clientesList.map(c => [c.id, c.nome]));
 
   const mensalidades = await db.select().from(controleMensalidades).where(
-    and(inArray(controleMensalidades.clienteId, clienteIds), eq(controleMensalidades.mes, mes), eq(controleMensalidades.ano, ano))
+    and(inArray(controleMensalidades.clienteId, filteredClienteIds), eq(controleMensalidades.mes, mes), eq(controleMensalidades.ano, ano))
   );
 
   const servicos = await db.select().from(servicosPrestados).where(
-    and(inArray(servicosPrestados.clienteId, clienteIds), eq(servicosPrestados.mes, mes), eq(servicosPrestados.ano, ano))
+    and(inArray(servicosPrestados.clienteId, filteredClienteIds), eq(servicosPrestados.mes, mes), eq(servicosPrestados.ano, ano))
   );
 
   const transacoes = [
@@ -1394,4 +1424,31 @@ export async function getFluxoCaixaTransacoes(userId: number, mes: string, ano: 
   ];
 
   return transacoes.sort((a, b) => a.cliente.localeCompare(b.cliente));
+}
+
+// ===== RESPONSÁVEIS =====
+
+export async function getResponsaveisByUser(userId: number, isAdmin: boolean = false) {
+  const db = await getDb();
+  if (!db) return [];
+  if (isAdmin) return db.select().from(responsaveis);
+  return db.select().from(responsaveis).where(eq(responsaveis.userId, userId));
+}
+
+export async function createResponsavel(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(responsaveis).values(data);
+}
+
+export async function updateResponsavel(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(responsaveis).set(data).where(eq(responsaveis.id, id));
+}
+
+export async function deleteResponsavel(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(responsaveis).where(eq(responsaveis.id, id));
 }
