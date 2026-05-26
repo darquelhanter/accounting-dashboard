@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2, Trash, ChevronRight, ChevronLeft } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Trash, ChevronRight, ChevronLeft, Search, CheckCircle2, XCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
@@ -42,6 +42,7 @@ import { ClienteFilters } from "@/components/ClienteFilters";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface ClienteForm {
+  cnpj: string;
   nome: string;
   regime: "Simples" | "Lucro Presumido" | "Lucro Real" | "MEI";
   setor: "Fiscal" | "Trabalhista" | "Contábil" | "Geral";
@@ -52,10 +53,20 @@ interface ClienteForm {
   mesesMensalidade: number[];
 }
 
+function formatCNPJ(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 14);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0,2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`;
+  if (d.length <= 12) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8)}`;
+  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
+}
+
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
                "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const initialForm: ClienteForm = {
+  cnpj: "",
   nome: "",
   regime: "Simples",
   setor: "Geral",
@@ -74,6 +85,8 @@ export default function Clientes() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ClienteForm>(initialForm);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const [cnpjStatus, setCnpjStatus] = useState<"ok" | "erro" | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"Ativo" | "Inativo">("Ativo");
   const [filterRegime, setFilterRegime] = useState<string>("Todos");
@@ -189,10 +202,33 @@ export default function Clientes() {
     }));
   };
 
+  async function consultarCNPJ() {
+    const digits = form.cnpj.replace(/\D/g, "");
+    if (digits.length !== 14) { toast.error("CNPJ deve ter 14 dígitos."); return; }
+    setCnpjLoading(true);
+    setCnpjStatus(null);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) throw new Error("CNPJ não encontrado na Receita Federal.");
+      const data = await res.json();
+      const nome = data.nome_fantasia?.trim() || data.razao_social?.trim() || "";
+      setForm((f) => ({ ...f, nome }));
+      setCnpjStatus("ok");
+      toast.success(`Dados preenchidos: ${nome}`);
+    } catch (err: any) {
+      setCnpjStatus("erro");
+      toast.error(err.message ?? "Erro ao consultar CNPJ.");
+    } finally {
+      setCnpjLoading(false);
+    }
+  }
+
   const handleOpenDialog = (cliente?: any) => {
+    setCnpjStatus(null);
     if (cliente) {
       setEditingId(cliente.id);
       setForm({
+        cnpj: cliente.cnpj ?? "",
         nome: cliente.nome,
         regime: cliente.regime,
         setor: cliente.setor,
@@ -289,6 +325,46 @@ export default function Clientes() {
             {/* PASSO 1: dados do cliente */}
             {(editingId || step === 1) && (
               <div className="space-y-4">
+                {/* CNPJ com busca */}
+                <div>
+                  <label className="text-sm font-medium text-slate-700">CNPJ</label>
+                  <div className="flex gap-2 mt-1">
+                    <div className="relative flex-1">
+                      <Input
+                        value={form.cnpj}
+                        onChange={(e) => {
+                          setForm({ ...form, cnpj: formatCNPJ(e.target.value) });
+                          setCnpjStatus(null);
+                        }}
+                        onKeyDown={(e) => e.key === "Enter" && consultarCNPJ()}
+                        placeholder="00.000.000/0001-00"
+                        maxLength={18}
+                      />
+                      {cnpjStatus === "ok" && (
+                        <CheckCircle2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                      )}
+                      {cnpjStatus === "erro" && (
+                        <XCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={consultarCNPJ}
+                      disabled={cnpjLoading}
+                      className="shrink-0 gap-1.5"
+                    >
+                      {cnpjLoading
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <Search className="h-4 w-4" />}
+                      Consultar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Digite o CNPJ e clique em Consultar para preencher o nome automaticamente
+                  </p>
+                </div>
+
                 <div>
                   <label className="text-sm font-medium text-slate-700">Nome *</label>
                   <Input
@@ -554,12 +630,12 @@ export default function Clientes() {
                         />
                       </TableHead>
                       <TableHead>Nome</TableHead>
+                      <TableHead>CNPJ</TableHead>
                       <TableHead>Regime</TableHead>
                       <TableHead>Setor</TableHead>
                       <TableHead>Valor (R$)</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Regime</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -573,6 +649,9 @@ export default function Clientes() {
                           />
                         </TableCell>
                         <TableCell className="font-medium">{cliente.nome}</TableCell>
+                        <TableCell className="text-sm text-slate-500 font-mono">
+                          {cliente.cnpj || "—"}
+                        </TableCell>
                         <TableCell>
                           <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
                             {cliente.regime}

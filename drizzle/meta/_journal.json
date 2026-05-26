@@ -106,6 +106,13 @@
       "when": 1748304000000,
       "tag": "0014_pasta_documentos",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "5",
+      "when": 1748390400000,
+      "tag": "0015_cnpj_clientes",
+      "breakpoints": true
     }
   ]
 }

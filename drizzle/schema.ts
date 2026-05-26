@@ -32,6 +32,7 @@ export type InsertUser = typeof users.$inferInsert;
 export const clientes = mysqlTable("clientes", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
+  cnpj: varchar("cnpj", { length: 18 }),
   nome: varchar("nome", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }),
   regime: mysqlEnum("regime", ["Simples", "Lucro Presumido", "Lucro Real", "MEI"]).notNull(),

@@ -22,6 +22,7 @@ const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
                 "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const clienteSchema = z.object({
+  cnpj: z.string().optional(),
   nome: z.string().min(1, "Nome é obrigatório"),
   regime: z.enum(["Simples", "Lucro Presumido", "Lucro Real", "MEI"]),
   setor: z.enum(["Fiscal", "Trabalhista", "Contábil", "Geral"]).optional(),
@@ -48,6 +49,7 @@ export const clientesRouter = router({
       const valor = typeof input.valor === "string" ? parseFloat(input.valor) : input.valor;
       const result = await createCliente({
         userId: ctx.user.id,
+        cnpj: input.cnpj ?? null,
         nome: input.nome,
         regime: input.regime,
         setor: input.setor || "Geral",
