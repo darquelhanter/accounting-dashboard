@@ -254,6 +254,12 @@ function TabDocumentos() {
     setIsDeletePastaOpen(true);
   }
 
+  function addToFolder(pasta: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setUploadPasta(pasta);
+    fileInputRef.current?.click();
+  }
+
   function confirmarDeletePasta() {
     const docIds = rawDocs.filter(d => d.pasta === deletePastaAlvo).map(d => d.id);
     const cleanup = () => {
@@ -533,24 +539,33 @@ function TabDocumentos() {
                       <span className="text-sm font-medium text-gray-800 text-center leading-tight break-all">{pasta}</span>
                       <Badge variant="secondary" className="text-xs">{count} arquivo{count !== 1 ? "s" : ""}</Badge>
                     </button>
-                    {temEmpresa && (
-                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => openRename(pasta, e)}
-                          title="Renomear pasta"
-                          className="p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-gray-500" />
-                        </button>
-                        <button
-                          onClick={(e) => openDeletePasta(pasta, e)}
-                          title="Excluir pasta"
-                          className="p-1 rounded-md bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 shadow-sm"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                        </button>
-                      </div>
-                    )}
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => addToFolder(pasta, e)}
+                        title="Adicionar arquivo"
+                        className="p-1 rounded-md bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-200 shadow-sm"
+                      >
+                        <Plus className="h-3.5 w-3.5 text-blue-500" />
+                      </button>
+                      {temEmpresa && (
+                        <>
+                          <button
+                            onClick={(e) => openRename(pasta, e)}
+                            title="Renomear pasta"
+                            className="p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                          </button>
+                          <button
+                            onClick={(e) => openDeletePasta(pasta, e)}
+                            title="Excluir pasta"
+                            className="p-1 rounded-md bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 shadow-sm"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -570,22 +585,21 @@ function TabDocumentos() {
       ) : (
         /* Vista de documentos dentro de uma pasta */
         <>
-          {temEmpresa && (
-            <div
-              className={`border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer ${
-                isDragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-              }`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleFileDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className={`h-7 w-7 mx-auto mb-1 ${isDragging ? "text-blue-500" : "text-gray-400"}`} />
-              <p className="text-sm text-gray-500">
-                Arraste um arquivo aqui ou <span className="text-blue-600 underline">clique para selecionar</span>
-              </p>
-            </div>
-          )}
+          <div
+            className={`border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer ${
+              isDragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleFileDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className={`h-7 w-7 mx-auto mb-1 ${isDragging ? "text-blue-500" : "text-gray-400"}`} />
+            <p className="text-sm text-gray-500">
+              Arraste um arquivo aqui ou <span className="text-blue-600 underline">clique para selecionar</span>
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">Máximo {MAX_FILE_SIZE_MB}MB</p>
+          </div>
 
           <div className="border rounded-lg overflow-hidden">
             <Table>
@@ -617,8 +631,14 @@ function TabDocumentos() {
                 ) : paginated.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-gray-500 py-12">
-                      <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      Nenhum documento encontrado.
+                      <Upload className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                      <p>Esta pasta está vazia.</p>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mt-2 text-sm text-blue-600 hover:underline"
+                      >
+                        Clique para enviar o primeiro arquivo
+                      </button>
                     </TableCell>
                   </TableRow>
                 ) : (
