@@ -210,6 +210,22 @@ export const acessosEmpresas = mysqlTable("acessos_empresas", {
 export type AcessoEmpresa = typeof acessosEmpresas.$inferSelect;
 export type InsertAcessoEmpresa = typeof acessosEmpresas.$inferInsert;
 
+// Tabela de Sócios das Empresas
+export const socios = mysqlTable("socios", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  clienteId: int("clienteId").notNull(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  cpf: varchar("cpf", { length: 14 }),
+  participacao: decimal("participacao", { precision: 5, scale: 2 }),
+  cargo: varchar("cargo", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Socio = typeof socios.$inferSelect;
+export type InsertSocio = typeof socios.$inferInsert;
+
 // Tabela de Responsáveis Contábeis
 export const responsaveis = mysqlTable("responsaveis", {
   id: int("id").autoincrement().primaryKey(),

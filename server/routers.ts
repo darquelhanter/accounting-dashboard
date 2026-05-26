@@ -14,6 +14,7 @@ import { documentosRouter } from "./routers/documentos";
 import { fluxoCaixaRouter } from "./routers/fluxoCaixa";
 import { acessosRouter } from "./routers/acessos";
 import { responsaveisRouter } from "./routers/responsaveis";
+import { sociosRouter } from "./routers/socios";
 import { z } from "zod";
 import * as db from "./db";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
@@ -38,6 +39,7 @@ export const appRouter = router({
   fluxoCaixa: fluxoCaixaRouter,
   acessos: acessosRouter,
   responsaveis: responsaveisRouter,
+  socios: sociosRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis, socios } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1451,4 +1451,28 @@ export async function deleteResponsavel(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.delete(responsaveis).where(eq(responsaveis.id, id));
+}
+
+export async function getSociosByCliente(clienteId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.select().from(socios).where(eq(socios.clienteId, clienteId));
+}
+
+export async function createSocio(data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(socios).values(data);
+}
+
+export async function updateSocio(id: number, data: any) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(socios).set(data).where(eq(socios.id, id));
+}
+
+export async function deleteSocio(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(socios).where(eq(socios.id, id));
 }

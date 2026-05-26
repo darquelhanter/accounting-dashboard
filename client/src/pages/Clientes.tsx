@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2, Trash, ChevronRight, ChevronLeft, Search, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Trash, ChevronRight, ChevronLeft, Search, CheckCircle2, XCircle, UserPlus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
@@ -41,6 +41,15 @@ import {
 import { ClienteFilters } from "@/components/ClienteFilters";
 import { Checkbox } from "@/components/ui/checkbox";
 
+interface SocioTemp {
+  nome: string;
+  cpf: string;
+  participacao: string;
+  cargo: string;
+}
+
+const initialSocioForm: SocioTemp = { nome: "", cpf: "", participacao: "", cargo: "" };
+
 interface ClienteForm {
   cnpj: string;
   nome: string;
@@ -54,6 +63,14 @@ interface ClienteForm {
   status: "Ativo" | "Inativo";
   obrigacaoIds: number[];
   mesesMensalidade: number[];
+}
+
+function formatCPF(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
 }
 
 function formatCNPJ(value: string): string {
@@ -90,7 +107,9 @@ export default function Clientes() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ClienteForm>(initialForm);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [sociosTemp, setSociosTemp] = useState<SocioTemp[]>([]);
+  const [socioForm, setSocioForm] = useState<SocioTemp>(initialSocioForm);
   const [cnpjLoading, setCnpjLoading] = useState(false);
   const [cnpjStatus, setCnpjStatus] = useState<"ok" | "erro" | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -108,6 +127,7 @@ export default function Clientes() {
   const updateMutation = trpc.clientes.update.useMutation();
   const deleteMutation = trpc.clientes.delete.useMutation();
   const deleteManyMutation = trpc.clientes.deleteMany.useMutation();
+  const createSocioMutation = trpc.socios.create.useMutation();
   const seedMEIMutation = trpc.obrigacoes.seedMEI.useMutation({
     onSuccess: () => {
       toast.success("Obrigacoes MEI adicionadas com sucesso!");
@@ -232,6 +252,8 @@ export default function Clientes() {
 
   const handleOpenDialog = (cliente?: any) => {
     setCnpjStatus(null);
+    setSociosTemp([]);
+    setSocioForm(initialSocioForm);
     if (cliente) {
       setEditingId(cliente.id);
       setForm({
@@ -280,7 +302,7 @@ export default function Clientes() {
         });
         toast.success("Empresa atualizada com sucesso!");
       } else {
-        await createMutation.mutateAsync({
+        const result = await createMutation.mutateAsync({
           ...form,
           vencimento: parseInt(form.vencimento),
           email: form.email || undefined,
@@ -289,6 +311,18 @@ export default function Clientes() {
           obrigacaoIds: form.obrigacaoIds,
           mesesMensalidade: form.mesesMensalidade,
         });
+        const newClienteId = (result as any)?.id;
+        if (newClienteId && sociosTemp.length > 0) {
+          for (const socio of sociosTemp) {
+            await createSocioMutation.mutateAsync({
+              clienteId: newClienteId,
+              nome: socio.nome,
+              cpf: socio.cpf || undefined,
+              participacao: socio.participacao ? parseFloat(socio.participacao) : undefined,
+              cargo: socio.cargo || undefined,
+            });
+          }
+        }
         toast.success("Empresa criada com sucesso!");
       }
       utils.clientes.list.invalidate();
@@ -298,6 +332,8 @@ export default function Clientes() {
         .map((o: any) => o.id);
       setForm({ ...initialForm, obrigacaoIds: defaultIds });
       setStep(1);
+      setSociosTemp([]);
+      setSocioForm(initialSocioForm);
       setCurrentPage(1);
     } catch (error) {
       toast.error("Erro ao salvar empresa");
@@ -334,10 +370,10 @@ export default function Clientes() {
               Nova Empresa
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingId ? "Editar Empresa" : `Nova Empresa — Passo ${step}/3`}
+                {editingId ? "Editar Empresa" : `Nova Empresa — Passo ${step}/4`}
               </DialogTitle>
             </DialogHeader>
 
@@ -489,6 +525,8 @@ export default function Clientes() {
                   </Select>
                 </div>
 
+                {editingId && <SociosSection clienteId={editingId} />}
+
                 <div className="flex gap-2 pt-4">
                   {editingId ? (
                     <>
@@ -612,6 +650,82 @@ export default function Clientes() {
                   <Button onClick={() => setStep(2)} variant="outline" className="flex-1">
                     <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
                   </Button>
+                  <Button onClick={() => setStep(4)} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                    Próximo <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* PASSO 4: sócios (apenas criação) */}
+            {!editingId && step === 4 && (
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Adicione os sócios de <strong>{form.nome}</strong>. Esta etapa é opcional — você pode pular ou adicionar depois.
+                </p>
+
+                {sociosTemp.length > 0 && (
+                  <div className="space-y-2">
+                    {sociosTemp.map((s, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 border rounded-md text-sm bg-slate-50">
+                        <div className="flex flex-wrap gap-x-2">
+                          <span className="font-medium">{s.nome}</span>
+                          {s.cpf && <span className="text-slate-500">{s.cpf}</span>}
+                          {s.participacao && <span className="text-blue-600">{s.participacao}%</span>}
+                          {s.cargo && <span className="text-slate-400">{s.cargo}</span>}
+                        </div>
+                        <Button size="sm" variant="ghost" onClick={() => setSociosTemp(prev => prev.filter((_, i) => i !== idx))}>
+                          <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="Nome *"
+                    value={socioForm.nome}
+                    onChange={e => setSocioForm(f => ({ ...f, nome: e.target.value }))}
+                    className="col-span-2"
+                  />
+                  <Input
+                    placeholder="CPF (000.000.000-00)"
+                    value={socioForm.cpf}
+                    onChange={e => setSocioForm(f => ({ ...f, cpf: formatCPF(e.target.value) }))}
+                    maxLength={14}
+                  />
+                  <Input
+                    placeholder="Cargo"
+                    value={socioForm.cargo}
+                    onChange={e => setSocioForm(f => ({ ...f, cargo: e.target.value }))}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Participação %"
+                    value={socioForm.participacao}
+                    onChange={e => setSocioForm(f => ({ ...f, participacao: e.target.value }))}
+                    className="col-span-2"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5"
+                  disabled={!socioForm.nome.trim()}
+                  onClick={() => {
+                    setSociosTemp(prev => [...prev, { ...socioForm }]);
+                    setSocioForm(initialSocioForm);
+                  }}
+                >
+                  <UserPlus className="h-4 w-4" /> Adicionar Sócio
+                </Button>
+
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={() => setStep(3)} variant="outline" className="flex-1">
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
+                  </Button>
                   <Button
                     onClick={handleSave}
                     disabled={createMutation.isPending}
@@ -627,6 +741,7 @@ export default function Clientes() {
       </div>
 
       {/* Abas de Status */}
+
       <Tabs value={filterStatus} onValueChange={(value: any) => {
         setFilterStatus(value);
         setCurrentPage(1);
@@ -874,6 +989,97 @@ export default function Clientes() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function SociosSection({ clienteId }: { clienteId: number }) {
+  const utils = trpc.useUtils();
+  const { data: socios = [] } = trpc.socios.list.useQuery({ clienteId });
+  const createMutation = trpc.socios.create.useMutation({
+    onSuccess: () => {
+      utils.socios.list.invalidate();
+      setForm(initialSocioForm);
+    },
+  });
+  const deleteMutation = trpc.socios.delete.useMutation({
+    onSuccess: () => utils.socios.list.invalidate(),
+  });
+  const [form, setForm] = useState<SocioTemp>(initialSocioForm);
+
+  return (
+    <div className="mt-4 pt-4 border-t space-y-3">
+      <h3 className="text-sm font-semibold text-slate-700">Sócios da Empresa</h3>
+
+      {(socios as any[]).length > 0 && (
+        <div className="space-y-2">
+          {(socios as any[]).map((s: any) => (
+            <div key={s.id} className="flex items-center justify-between p-2 border rounded-md text-sm bg-slate-50">
+              <div className="flex flex-wrap gap-x-2 min-w-0">
+                <span className="font-medium">{s.nome}</span>
+                {s.cpf && <span className="text-slate-500">{s.cpf}</span>}
+                {s.participacao && <span className="text-blue-600">{s.participacao}%</span>}
+                {s.cargo && <span className="text-slate-400">{s.cargo}</span>}
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate({ id: s.id })}
+                className="shrink-0 ml-2"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-red-400" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <Input
+          placeholder="Nome *"
+          value={form.nome}
+          onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+          className="col-span-2"
+        />
+        <Input
+          placeholder="CPF (000.000.000-00)"
+          value={form.cpf}
+          onChange={e => setForm(f => ({ ...f, cpf: formatCPF(e.target.value) }))}
+          maxLength={14}
+        />
+        <Input
+          placeholder="Cargo"
+          value={form.cargo}
+          onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))}
+        />
+        <Input
+          type="number"
+          placeholder="Participação %"
+          value={form.participacao}
+          onChange={e => setForm(f => ({ ...f, participacao: e.target.value }))}
+          className="col-span-2"
+        />
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full gap-1.5"
+        disabled={!form.nome.trim() || createMutation.isPending}
+        onClick={() => createMutation.mutate({
+          clienteId,
+          nome: form.nome,
+          cpf: form.cpf || undefined,
+          participacao: form.participacao ? parseFloat(form.participacao) : undefined,
+          cargo: form.cargo || undefined,
+        })}
+      >
+        {createMutation.isPending
+          ? <Loader2 className="h-4 w-4 animate-spin" />
+          : <UserPlus className="h-4 w-4" />}
+        Adicionar Sócio
+      </Button>
     </div>
   );
 }
