@@ -103,6 +103,9 @@ function TabDocumentos() {
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameAlvo, setRenameAlvo] = useState("");
   const [renameNome, setRenameNome] = useState("");
+  const [isDeletePastaOpen, setIsDeletePastaOpen] = useState(false);
+  const [deletePastaAlvo, setDeletePastaAlvo] = useState("");
+  const [pastasVazias, setPastasVazias] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadDescricao, setUploadDescricao] = useState("");
@@ -178,14 +181,17 @@ function TabDocumentos() {
     }
   }, [downloadQuery.isError, downloadingId]);
 
-  // Pastas únicas dos documentos da empresa selecionada
+  // Pastas únicas dos documentos + pastas criadas ainda vazias
   const pastasExistentes = useMemo(() => {
     const set = new Set<string>();
     for (const d of rawDocs) {
       if (d.pasta) set.add(d.pasta);
     }
+    for (const p of pastasVazias) {
+      set.add(p);
+    }
     return Array.from(set).sort();
-  }, [rawDocs]);
+  }, [rawDocs, pastasVazias]);
 
   // Docs filtrados por pasta ativa e busca
   const docsNaPasta = useMemo(() => {
@@ -230,11 +236,38 @@ function TabDocumentos() {
   function confirmarNovaPasta() {
     const nome = novaPastaNome.trim();
     if (!nome) { toast.error("Digite um nome para a pasta."); return; }
+    if (pastasExistentes.includes(nome)) {
+      toast.error("Já existe uma pasta com esse nome.");
+      return;
+    }
     setIsNovaPastaOpen(false);
     setNovaPastaNome("");
+    setPastasVazias(prev => [...prev, nome]);
     setUploadPasta(nome);
     setPastaAtiva(nome);
-    setTimeout(() => fileInputRef.current?.click(), 100);
+    toast.success(`Pasta "${nome}" criada! Envie arquivos quando quiser.`);
+  }
+
+  function openDeletePasta(pasta: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setDeletePastaAlvo(pasta);
+    setIsDeletePastaOpen(true);
+  }
+
+  function confirmarDeletePasta() {
+    const docIds = rawDocs.filter(d => d.pasta === deletePastaAlvo).map(d => d.id);
+    const cleanup = () => {
+      setPastasVazias(prev => prev.filter(p => p !== deletePastaAlvo));
+      setIsDeletePastaOpen(false);
+      setDeletePastaAlvo("");
+      if (pastaAtiva === deletePastaAlvo) voltarPastas();
+    };
+    if (docIds.length > 0) {
+      deleteManyMutation.mutate({ ids: docIds }, { onSuccess: () => { cleanup(); toast.success("Pasta e arquivos excluídos!"); } });
+    } else {
+      cleanup();
+      toast.success("Pasta excluída!");
+    }
   }
 
   function openRename(pasta: string, e: React.MouseEvent) {
@@ -341,6 +374,18 @@ function TabDocumentos() {
               <FolderPlus className="h-4 w-4" />
               Nova Pasta
             </Button>
+          )}
+          {pastaAtiva !== null && pastaAtiva !== "__sem_pasta__" && temEmpresa && (
+            <>
+              <Button variant="outline" size="sm" onClick={(e) => openRename(pastaAtiva, e)} className="flex items-center gap-1.5">
+                <Pencil className="h-3.5 w-3.5" />
+                Renomear
+              </Button>
+              <Button variant="outline" size="sm" onClick={(e) => openDeletePasta(pastaAtiva, e)} className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir Pasta
+              </Button>
+            </>
           )}
           {temEmpresa && (
             <Button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2">
@@ -489,13 +534,22 @@ function TabDocumentos() {
                       <Badge variant="secondary" className="text-xs">{count} arquivo{count !== 1 ? "s" : ""}</Badge>
                     </button>
                     {temEmpresa && (
-                      <button
-                        onClick={(e) => openRename(pasta, e)}
-                        title="Renomear pasta"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm"
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-gray-500" />
-                      </button>
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => openRename(pasta, e)}
+                          title="Renomear pasta"
+                          className="p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                        </button>
+                        <button
+                          onClick={(e) => openDeletePasta(pasta, e)}
+                          title="Excluir pasta"
+                          className="p-1 rounded-md bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 shadow-sm"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
@@ -686,6 +740,32 @@ function TabDocumentos() {
         </DialogContent>
       </Dialog>
 
+      {/* Modal Excluir Pasta */}
+      <AlertDialog open={isDeletePastaOpen} onOpenChange={(v) => { setIsDeletePastaOpen(v); if (!v) setDeletePastaAlvo(""); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pasta "{deletePastaAlvo}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const count = rawDocs.filter(d => d.pasta === deletePastaAlvo).length;
+                return count > 0
+                  ? `Esta pasta contém ${count} arquivo${count !== 1 ? "s" : ""}. Todos serão excluídos permanentemente.`
+                  : "A pasta está vazia e será removida.";
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={confirmarDeletePasta}
+            >
+              Excluir
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Modal Nova Pasta */}
       <Dialog open={isNovaPastaOpen} onOpenChange={(v) => { setIsNovaPastaOpen(v); if (!v) setNovaPastaNome(""); }}>
         <DialogContent className="max-w-sm">
@@ -704,11 +784,11 @@ function TabDocumentos() {
               />
             </div>
             <p className="text-xs text-gray-500">
-              Após criar a pasta, você poderá enviar o primeiro documento para ela.
+              A pasta será criada vazia. Você pode enviar arquivos para ela quando quiser.
             </p>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsNovaPastaOpen(false)}>Cancelar</Button>
-              <Button onClick={confirmarNovaPasta}>Criar e Enviar</Button>
+              <Button onClick={confirmarNovaPasta}>Criar Pasta</Button>
             </div>
           </div>
         </DialogContent>
