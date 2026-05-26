@@ -202,6 +202,8 @@ function TabDocumentos() {
       if (pastaAtiva !== null) {
         if (pastaAtiva === "__sem_pasta__") {
           if (d.pasta) return false;
+        } else if (pastaAtiva === "__todos__") {
+          // sem filtro de pasta — mostra tudo
         } else {
           if (d.pasta !== pastaAtiva) return false;
         }
@@ -364,8 +366,12 @@ function TabDocumentos() {
               </button>
               <div>
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Folder className="h-5 w-5 text-yellow-500" />
-                  {pastaAtiva === "__sem_pasta__" ? "Sem pasta" : pastaAtiva}
+                  {pastaAtiva === "__todos__"
+                    ? <><FileText className="h-5 w-5 text-blue-500" /> Todos os documentos</>
+                    : pastaAtiva === "__sem_pasta__"
+                      ? <><Folder className="h-5 w-5 text-gray-400" /> Sem pasta</>
+                      : <><Folder className="h-5 w-5 text-yellow-500" /> {pastaAtiva}</>
+                  }
                 </h2>
                 <p className="text-gray-500 text-xs mt-0.5">{empresaNome}</p>
               </div>
@@ -384,7 +390,7 @@ function TabDocumentos() {
               Nova Pasta
             </Button>
           )}
-          {pastaAtiva !== null && pastaAtiva !== "__sem_pasta__" && temEmpresa && (
+          {pastaAtiva !== null && pastaAtiva !== "__sem_pasta__" && pastaAtiva !== "__todos__" && temEmpresa && (
             <>
               <Button variant="outline" size="sm" onClick={(e) => openRename(pastaAtiva, e)} className="flex items-center gap-1.5">
                 <Pencil className="h-3.5 w-3.5" />
@@ -413,21 +419,34 @@ function TabDocumentos() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card
+          className="cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all"
+          onClick={() => { setPastaAtiva("__todos__"); setCurrentPage(1); setSelectedIds([]); setSearchTerm(""); }}
+        >
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total de Documentos</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Total de Documentos
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{rawDocs.length}</p>
             <p className="text-xs text-gray-500">{formatBytes(totalSize)} armazenados</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          className="cursor-pointer hover:border-yellow-300 hover:shadow-sm transition-all"
+          onClick={() => { voltarPastas(); }}
+        >
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Pastas</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-1.5">
+              <Folder className="h-3.5 w-3.5" />
+              Pastas
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{pastasExistentes.length}</p>
+            <p className="text-xs text-gray-500">clique para ver</p>
           </CardContent>
         </Card>
         <Card>
