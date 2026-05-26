@@ -105,7 +105,7 @@ function TabDocumentos() {
   const [renameNome, setRenameNome] = useState("");
   const [isDeletePastaOpen, setIsDeletePastaOpen] = useState(false);
   const [deletePastaAlvo, setDeletePastaAlvo] = useState("");
-  const [pastasVazias, setPastasVazias] = useState<string[]>([]);
+  const [pastasVazias, setPastasVazias] = useState<{ clienteId: number | undefined; nome: string }[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadDescricao, setUploadDescricao] = useState("");
@@ -152,6 +152,9 @@ function TabDocumentos() {
       refetch();
       setIsRenameOpen(false);
       setPastaAtiva((prev) => prev === renameAlvo ? renameNome.trim() : prev);
+      setPastasVazias(prev => prev.map(p =>
+        p.nome === renameAlvo && p.clienteId === clienteId ? { ...p, nome: renameNome.trim() } : p
+      ));
       toast.success("Pasta renomeada!");
     },
     onError: (err) => toast.error(err.message),
@@ -181,17 +184,17 @@ function TabDocumentos() {
     }
   }, [downloadQuery.isError, downloadingId]);
 
-  // Pastas únicas dos documentos + pastas criadas ainda vazias
+  // Pastas únicas dos documentos + pastas criadas ainda vazias (filtradas pela empresa selecionada)
   const pastasExistentes = useMemo(() => {
     const set = new Set<string>();
     for (const d of rawDocs) {
       if (d.pasta) set.add(d.pasta);
     }
     for (const p of pastasVazias) {
-      set.add(p);
+      if (p.clienteId === clienteId) set.add(p.nome);
     }
     return Array.from(set).sort();
-  }, [rawDocs, pastasVazias]);
+  }, [rawDocs, pastasVazias, clienteId]);
 
   // Docs filtrados por pasta ativa e busca
   const docsNaPasta = useMemo(() => {
@@ -242,7 +245,7 @@ function TabDocumentos() {
     }
     setIsNovaPastaOpen(false);
     setNovaPastaNome("");
-    setPastasVazias(prev => [...prev, nome]);
+    setPastasVazias(prev => [...prev, { clienteId, nome }]);
     setUploadPasta(nome);
     setPastaAtiva(nome);
     toast.success(`Pasta "${nome}" criada! Envie arquivos quando quiser.`);
@@ -263,7 +266,7 @@ function TabDocumentos() {
   function confirmarDeletePasta() {
     const docIds = rawDocs.filter(d => d.pasta === deletePastaAlvo).map(d => d.id);
     const cleanup = () => {
-      setPastasVazias(prev => prev.filter(p => p !== deletePastaAlvo));
+      setPastasVazias(prev => prev.filter(p => !(p.nome === deletePastaAlvo && p.clienteId === clienteId)));
       setIsDeletePastaOpen(false);
       setDeletePastaAlvo("");
       if (pastaAtiva === deletePastaAlvo) voltarPastas();
