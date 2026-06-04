@@ -288,3 +288,19 @@ export const syncLog = mysqlTable("sync_log", {
 
 export type SyncLog = typeof syncLog.$inferSelect;
 export type InsertSyncLog = typeof syncLog.$inferInsert;
+
+// Lançamentos de Fluxo de Caixa criados pelo cliente no portal
+export const portalFluxoCaixa = mysqlTable("portal_fluxo_caixa", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull(),
+  tipo: mysqlEnum("tipo", ["entrada", "saida"]).notNull(),
+  descricao: varchar("descricao", { length: 255 }).notNull(),
+  valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
+  mes: varchar("mes", { length: 10 }).notNull(),
+  ano: int("ano").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PortalFluxoCaixa = typeof portalFluxoCaixa.$inferSelect;
+export type InsertPortalFluxoCaixa = typeof portalFluxoCaixa.$inferInsert;

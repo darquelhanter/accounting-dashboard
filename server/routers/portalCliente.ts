@@ -106,12 +106,40 @@ export const portalClienteRouter = router({
     }),
 
   fluxoCaixa: clientePortalProcedure.query(async ({ ctx }) => {
-    const [mensalidades, servicos] = await Promise.all([
+    const [mensalidades, servicos, lancamentos] = await Promise.all([
       db.getMensalidadesByCliente(ctx.clientePortal.clienteId),
       db.getServicosPrestadosByCliente(ctx.clientePortal.clienteId),
+      db.getPortalFluxoCaixaByCliente(ctx.clientePortal.clienteId),
     ]);
-    return { mensalidades, servicos };
+    return { mensalidades, servicos, lancamentos };
   }),
+
+  criarLancamento: clientePortalProcedure
+    .input(z.object({
+      tipo: z.enum(["entrada", "saida"]),
+      descricao: z.string().min(1, "Descrição é obrigatória"),
+      valor: z.number().positive("Valor deve ser positivo"),
+      mes: z.string().min(1),
+      ano: z.number().int().min(2000).max(2100),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      await db.createPortalFluxoCaixa({
+        clienteId: ctx.clientePortal.clienteId,
+        tipo: input.tipo,
+        descricao: input.descricao,
+        valor: input.valor.toFixed(2),
+        mes: input.mes,
+        ano: input.ano,
+      });
+      return { success: true };
+    }),
+
+  deletarLancamento: clientePortalProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      await db.deletePortalFluxoCaixa(input.id, ctx.clientePortal.clienteId);
+      return { success: true };
+    }),
 });
 
 // Roteador admin para gerenciar acesso do portal

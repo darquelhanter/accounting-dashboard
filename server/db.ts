@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis, socios, portalClientes } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis, socios, portalClientes, portalFluxoCaixa } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1198,6 +1198,36 @@ export async function getServicosPrestadosByCliente(clienteId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(servicosPrestados).where(eq(servicosPrestados.clienteId, clienteId));
+}
+
+// ===== PORTAL FLUXO DE CAIXA =====
+
+export async function getPortalFluxoCaixaByCliente(clienteId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(portalFluxoCaixa).where(eq(portalFluxoCaixa.clienteId, clienteId));
+}
+
+export async function createPortalFluxoCaixa(data: {
+  clienteId: number;
+  tipo: "entrada" | "saida";
+  descricao: string;
+  valor: string;
+  mes: string;
+  ano: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(portalFluxoCaixa).values(data);
+  return result;
+}
+
+export async function deletePortalFluxoCaixa(id: number, clienteId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(portalFluxoCaixa).where(
+    and(eq(portalFluxoCaixa.id, id), eq(portalFluxoCaixa.clienteId, clienteId))
+  );
 }
 
 export async function renamePastaDocumentos(clienteId: number, oldNome: string, newNome: string) {
