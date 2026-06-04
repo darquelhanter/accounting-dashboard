@@ -168,6 +168,9 @@ export default function PortalCliente() {
   });
   const [lancAno, setLancAno] = useState(() => new Date().getFullYear());
 
+  // Filtro de mês no fluxo de caixa (null = Todos)
+  const [filtroSortKey, setFiltroSortKey] = useState<string | null>(null);
+
   // Queries e mutations
   const utils = trpc.useUtils();
 
@@ -373,6 +376,23 @@ export default function PortalCliente() {
     }
     return { entradas, saidas, saldo: entradas - saidas };
   }, [gruposPorMes]);
+
+  const gruposVisiveis = filtroSortKey
+    ? gruposPorMes.filter(g => g.sortKey === filtroSortKey)
+    : gruposPorMes;
+
+  const resumoVisivel = useMemo(() => {
+    let entradas = 0, saidas = 0;
+    for (const g of gruposVisiveis) {
+      for (const i of g.entradas) entradas += i.valor;
+      for (const i of g.saidas) saidas += i.valor;
+    }
+    return { entradas, saidas, saldo: entradas - saidas };
+  }, [gruposVisiveis]);
+
+  const filtroLabel = filtroSortKey
+    ? gruposPorMes.find(g => g.sortKey === filtroSortKey)?.label ?? ""
+    : null;
 
   return (
     <div className="space-y-6">
@@ -742,32 +762,78 @@ export default function PortalCliente() {
             </div>
           ) : (
             <>
-              {/* Resumo geral */}
+              {/* Seletor de mês */}
+              {gruposPorMes.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                  <button
+                    onClick={() => setFiltroSortKey(null)}
+                    className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      filtroSortKey === null
+                        ? "bg-gray-800 text-white border-gray-800"
+                        : "bg-white text-gray-600 border-gray-300 hover:border-gray-500"
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {gruposPorMes.map(g => (
+                    <button
+                      key={g.sortKey}
+                      onClick={() => setFiltroSortKey(g.sortKey)}
+                      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        filtroSortKey === g.sortKey
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-white text-gray-600 border-gray-300 hover:border-emerald-400"
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Resumo (mês selecionado ou total) */}
               <div className="grid grid-cols-3 gap-3">
                 <Card>
                   <CardContent className="pt-4 pb-3">
-                    <p className="text-xs text-gray-500 mb-1">Total de Entradas</p>
-                    <p className="text-lg font-bold text-emerald-700">{formatCurrency(resumoGeral.entradas)}</p>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {filtroLabel ? `Entradas — ${filtroLabel}` : "Total de Entradas"}
+                    </p>
+                    <p className="text-lg font-bold text-emerald-700">{formatCurrency(resumoVisivel.entradas)}</p>
+                    {filtroLabel && resumoGeral.entradas !== resumoVisivel.entradas && (
+                      <p className="text-xs text-gray-400 mt-0.5">Total: {formatCurrency(resumoGeral.entradas)}</p>
+                    )}
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 pb-3">
-                    <p className="text-xs text-gray-500 mb-1">Total de Saídas</p>
-                    <p className="text-lg font-bold text-red-600">{formatCurrency(resumoGeral.saidas)}</p>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {filtroLabel ? `Saídas — ${filtroLabel}` : "Total de Saídas"}
+                    </p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(resumoVisivel.saidas)}</p>
+                    {filtroLabel && resumoGeral.saidas !== resumoVisivel.saidas && (
+                      <p className="text-xs text-gray-400 mt-0.5">Total: {formatCurrency(resumoGeral.saidas)}</p>
+                    )}
                   </CardContent>
                 </Card>
-                <Card className={resumoGeral.saldo >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}>
+                <Card className={resumoVisivel.saldo >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}>
                   <CardContent className="pt-4 pb-3">
-                    <p className="text-xs text-gray-500 mb-1">Saldo Geral</p>
-                    <p className={`text-lg font-bold ${resumoGeral.saldo >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                      {resumoGeral.saldo >= 0 ? "+" : ""}{formatCurrency(resumoGeral.saldo)}
+                    <p className="text-xs text-gray-500 mb-1">
+                      {filtroLabel ? `Saldo — ${filtroLabel}` : "Saldo Geral"}
                     </p>
+                    <p className={`text-lg font-bold ${resumoVisivel.saldo >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                      {resumoVisivel.saldo >= 0 ? "+" : ""}{formatCurrency(resumoVisivel.saldo)}
+                    </p>
+                    {filtroLabel && resumoGeral.saldo !== resumoVisivel.saldo && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Total: {resumoGeral.saldo >= 0 ? "+" : ""}{formatCurrency(resumoGeral.saldo)}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
 
               {/* Grupos por mês */}
-              {gruposPorMes.length === 0 ? (
+              {gruposVisiveis.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
                     <DollarSign className="w-10 h-10 text-gray-300 mx-auto mb-3" />
@@ -777,7 +843,7 @@ export default function PortalCliente() {
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {gruposPorMes.map(grupo => {
+                  {gruposVisiveis.map(grupo => {
                     const totalEnt = grupo.entradas.reduce((s, i) => s + i.valor, 0);
                     const totalSai = grupo.saidas.reduce((s, i) => s + i.valor, 0);
                     const saldoMes = totalEnt - totalSai;
