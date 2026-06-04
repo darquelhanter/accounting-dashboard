@@ -295,7 +295,6 @@ class SDKServer {
 
     return user;
   }
-}
 
   async createPortalToken(
     clienteId: number,
