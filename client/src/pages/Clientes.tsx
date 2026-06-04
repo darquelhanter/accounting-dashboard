@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2, Trash, ChevronRight, ChevronLeft, Search, CheckCircle2, XCircle, UserPlus } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Trash, ChevronRight, ChevronLeft, Search, CheckCircle2, XCircle, UserPlus, Key, ShieldCheck, ShieldOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
@@ -526,6 +526,7 @@ export default function Clientes() {
                 </div>
 
                 {editingId && <SociosSection clienteId={editingId} />}
+                {editingId && <PortalAccessSection clienteId={editingId} cnpj={form.cnpj} />}
 
                 <div className="flex gap-2 pt-4">
                   {editingId ? (
@@ -1080,6 +1081,140 @@ function SociosSection({ clienteId }: { clienteId: number }) {
           : <UserPlus className="h-4 w-4" />}
         Adicionar Sócio
       </Button>
+    </div>
+  );
+}
+
+function PortalAccessSection({ clienteId, cnpj }: { clienteId: number; cnpj: string }) {
+  const utils = trpc.useUtils();
+  const { data: acesso, isLoading } = trpc.portalAdmin.getByCliente.useQuery({ clienteId });
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const createMutation = trpc.portalAdmin.create.useMutation({
+    onSuccess: () => {
+      toast.success("Acesso do portal criado!");
+      setPassword("");
+      utils.portalAdmin.getByCliente.invalidate({ clienteId });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.portalAdmin.updatePassword.useMutation({
+    onSuccess: () => {
+      toast.success("Senha atualizada!");
+      setPassword("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const toggleMutation = trpc.portalAdmin.toggle.useMutation({
+    onSuccess: () => utils.portalAdmin.getByCliente.invalidate({ clienteId }),
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deleteMutation = trpc.portalAdmin.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Acesso do portal removido!");
+      utils.portalAdmin.getByCliente.invalidate({ clienteId });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <div className="mt-4 pt-4 border-t space-y-3">
+      <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+        <Key className="w-4 h-4" /> Acesso do Portal (Cliente)
+      </h3>
+
+      {isLoading ? (
+        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+      ) : acesso ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 border rounded-md bg-slate-50 text-sm">
+            <div>
+              <p className="font-medium text-slate-700">CNPJ: {acesso.cnpj}</p>
+              <p className={`text-xs mt-0.5 ${acesso.ativo ? "text-green-600" : "text-red-500"}`}>
+                {acesso.ativo ? "Acesso ativo" : "Acesso desativado"}
+              </p>
+              <a
+                href="/cliente/login"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:underline"
+              >
+                /cliente/login
+              </a>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                title={acesso.ativo ? "Desativar" : "Ativar"}
+                onClick={() => toggleMutation.mutate({ clienteId, ativo: !acesso.ativo })}
+                disabled={toggleMutation.isPending}
+              >
+                {acesso.ativo
+                  ? <ShieldOff className="h-4 w-4 text-orange-400" />
+                  : <ShieldCheck className="h-4 w-4 text-green-500" />}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => deleteMutation.mutate({ clienteId })}
+                disabled={deleteMutation.isPending}
+              >
+                <Trash2 className="h-3.5 w-3.5 text-red-400" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Nova senha (mín. 6 caracteres)"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={password.length < 6 || updateMutation.isPending}
+              onClick={() => updateMutation.mutate({ clienteId, password })}
+            >
+              {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Alterar senha"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs text-slate-500">
+            CNPJ da empresa: <strong>{cnpj || "não cadastrado"}</strong>
+          </p>
+          <div className="flex gap-2">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Senha de acesso (mín. 6 caracteres)"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              size="sm"
+              disabled={password.length < 6 || !cnpj || createMutation.isPending}
+              onClick={() => createMutation.mutate({ clienteId, cnpj, password })}
+              className="bg-blue-600 hover:bg-blue-700 shrink-0"
+            >
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar acesso"}
+            </Button>
+          </div>
+          {!cnpj && (
+            <p className="text-xs text-orange-500">Cadastre o CNPJ da empresa antes de criar o acesso.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

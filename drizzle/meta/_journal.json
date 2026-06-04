@@ -127,6 +127,13 @@
       "when": 1748563200000,
       "tag": "0017_socios",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1748649600000,
+      "tag": "0018_portal_clientes",
+      "breakpoints": true
     }
   ]
 }

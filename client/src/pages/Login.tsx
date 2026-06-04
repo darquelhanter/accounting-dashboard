@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { BarChart3, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
@@ -11,6 +12,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const oauthUrl = getLoginUrl();
@@ -33,7 +35,7 @@ export default function Login() {
     }
     setIsLoading(true);
     try {
-      await loginMutation.mutateAsync({ email, password });
+      await loginMutation.mutateAsync({ email, password, rememberMe });
     } finally {
       setIsLoading(false);
     }
@@ -94,6 +96,17 @@ export default function Login() {
                 </div>
               </div>
 
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onCheckedChange={(v) => setRememberMe(Boolean(v))}
+                />
+                <label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
+                  Lembrar de mim
+                </label>
+              </div>
+
               <Button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700"
@@ -102,6 +115,12 @@ export default function Login() {
                 {isLoading ? "Entrando..." : "Entrar"}
               </Button>
             </form>
+
+            <div className="border-t pt-3 text-center">
+              <a href="/cliente/login" className="text-sm text-blue-600 hover:text-blue-700">
+                Acesso do cliente (CNPJ) →
+              </a>
+            </div>
 
             {/* Login com OAuth — só aparece se configurado */}
             {oauthUrl && (

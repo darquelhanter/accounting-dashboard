@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis, socios } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis, socios, portalClientes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -215,6 +215,13 @@ export async function getAccessibleClienteIds(userId: number, isAdmin: boolean =
 }
 
 // Clientes
+export async function getClienteById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(clientes).where(eq(clientes.id, id)).limit(1);
+  return result[0] ?? undefined;
+}
+
 export async function getClientesByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -1475,4 +1482,57 @@ export async function deleteSocio(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.delete(socios).where(eq(socios.id, id));
+}
+
+// ===== PORTAL DE CLIENTES =====
+
+export async function getPortalClienteByClienteId(clienteId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(portalClientes).where(eq(portalClientes.clienteId, clienteId)).limit(1);
+  return result[0] ?? undefined;
+}
+
+export async function getPortalClienteByCnpj(cnpj: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(portalClientes).where(eq(portalClientes.cnpj, cnpj)).limit(1);
+  return result[0] ?? undefined;
+}
+
+export async function createPortalCliente(clienteId: number, cnpj: string, password: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await getPortalClienteByClienteId(clienteId);
+  if (existing) throw new Error("Acesso já existe para esta empresa");
+  const passwordHash = await bcrypt.hash(password, 10);
+  await db.insert(portalClientes).values({ clienteId, cnpj, passwordHash, ativo: true });
+  return getPortalClienteByClienteId(clienteId);
+}
+
+export async function updatePortalClientePassword(clienteId: number, newPassword: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await db.update(portalClientes).set({ passwordHash }).where(eq(portalClientes.clienteId, clienteId));
+}
+
+export async function togglePortalCliente(clienteId: number, ativo: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(portalClientes).set({ ativo }).where(eq(portalClientes.clienteId, clienteId));
+}
+
+export async function deletePortalCliente(clienteId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(portalClientes).where(eq(portalClientes.clienteId, clienteId));
+}
+
+export async function verifyPortalClientePassword(cnpj: string, password: string) {
+  const portal = await getPortalClienteByCnpj(cnpj);
+  if (!portal || !portal.ativo) return null;
+  const isValid = await bcrypt.compare(password, portal.passwordHash);
+  if (!isValid) return null;
+  return portal;
 }

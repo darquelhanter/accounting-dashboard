@@ -210,6 +210,20 @@ export const acessosEmpresas = mysqlTable("acessos_empresas", {
 export type AcessoEmpresa = typeof acessosEmpresas.$inferSelect;
 export type InsertAcessoEmpresa = typeof acessosEmpresas.$inferInsert;
 
+// Tabela de Portal de Acesso do Cliente (login via CNPJ)
+export const portalClientes = mysqlTable("portal_clientes", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("clienteId").notNull().unique(),
+  cnpj: varchar("cnpj", { length: 18 }).notNull(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PortalCliente = typeof portalClientes.$inferSelect;
+export type InsertPortalCliente = typeof portalClientes.$inferInsert;
+
 // Tabela de Sócios das Empresas
 export const socios = mysqlTable("socios", {
   id: int("id").autoincrement().primaryKey(),

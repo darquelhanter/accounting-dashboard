@@ -15,6 +15,7 @@ import { fluxoCaixaRouter } from "./routers/fluxoCaixa";
 import { acessosRouter } from "./routers/acessos";
 import { responsaveisRouter } from "./routers/responsaveis";
 import { sociosRouter } from "./routers/socios";
+import { portalClienteRouter, portalAdminRouter } from "./routers/portalCliente";
 import { z } from "zod";
 import * as db from "./db";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
@@ -40,6 +41,8 @@ export const appRouter = router({
   acessos: acessosRouter,
   responsaveis: responsaveisRouter,
   socios: sociosRouter,
+  portalCliente: portalClienteRouter,
+  portalAdmin: portalAdminRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -94,6 +97,7 @@ export const appRouter = router({
       .input(z.object({
         email: z.string().email("Email inválido"),
         password: z.string().min(1, "Senha é obrigatória"),
+        rememberMe: z.boolean().default(false),
       }))
       .mutation(async ({ input, ctx }) => {
         try {
@@ -126,13 +130,17 @@ export const appRouter = router({
           });
 
           // Criar sessão
+          const expiresInMs = input.rememberMe ? ONE_YEAR_MS : undefined;
           const sessionToken = await sdk.createSessionToken(user.openId || "", {
             name: user.name || "",
-            expiresInMs: ONE_YEAR_MS,
+            expiresInMs: expiresInMs ?? ONE_YEAR_MS,
           });
 
           const cookieOptions = getSessionCookieOptions(ctx.req);
-          ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+          ctx.res.cookie(COOKIE_NAME, sessionToken, {
+            ...cookieOptions,
+            ...(input.rememberMe ? { maxAge: ONE_YEAR_MS } : {}),
+          });
 
           return { success: true, user };
         } catch (error: any) {

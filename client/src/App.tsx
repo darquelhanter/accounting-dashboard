@@ -12,8 +12,11 @@ import Mensalidades from "./pages/Mensalidades";
 import Admin from "./pages/Admin";
 import NotificacaoConfigs from "./pages/NotificacaoConfigs";
 import DashboardLayout from "./components/DashboardLayout";
+import PortalLayout from "./components/PortalLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ClienteLogin from "./pages/ClienteLogin";
+import PortalCliente from "./pages/PortalCliente";
 import Profile from "./pages/Profile";
 import UserApproval from "./pages/UserApproval";
 import ClientePermissions from "./pages/ClientePermissions";
@@ -31,6 +34,8 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/login"} component={Login} />
       <Route path={"/register"} component={Register} />
+      <Route path={"/cliente/login"} component={ClienteLogin} />
+      <Route path={"/portal"} component={() => <PortalLayout><PortalCliente /></PortalLayout>} />
       <Route path={"/clientes"} component={() => <DashboardLayout><Clientes /></DashboardLayout>} />
       <Route path={"/obrigacoes"} component={() => <DashboardLayout><Obrigacoes /></DashboardLayout>} />
       <Route path={"/checklist"} component={() => <DashboardLayout><ChecklistMensal /></DashboardLayout>} />

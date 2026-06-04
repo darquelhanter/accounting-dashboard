@@ -1,4 +1,4 @@
-import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { AXIOS_TIMEOUT_MS, COOKIE_NAME, PORTAL_COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
@@ -294,6 +294,44 @@ class SDKServer {
     });
 
     return user;
+  }
+}
+
+  async createPortalToken(
+    clienteId: number,
+    cnpj: string,
+    options: { expiresInMs?: number } = {}
+  ): Promise<string> {
+    const issuedAt = Date.now();
+    const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
+    const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1000);
+    const secretKey = this.getSessionSecret();
+
+    return new SignJWT({ clienteId, cnpj, type: "client_portal" })
+      .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+      .setExpirationTime(expirationSeconds)
+      .sign(secretKey);
+  }
+
+  async verifyPortalToken(
+    cookieValue: string | undefined | null
+  ): Promise<{ clienteId: number; cnpj: string } | null> {
+    if (!cookieValue) return null;
+    try {
+      const secretKey = this.getSessionSecret();
+      const { payload } = await jwtVerify(cookieValue, secretKey, { algorithms: ["HS256"] });
+      const { clienteId, cnpj, type } = payload as Record<string, unknown>;
+      if (type !== "client_portal" || typeof clienteId !== "number" || typeof cnpj !== "string") return null;
+      return { clienteId, cnpj };
+    } catch {
+      return null;
+    }
+  }
+
+  async authenticatePortalRequest(req: Request): Promise<{ clienteId: number; cnpj: string } | null> {
+    const cookies = this.parseCookies(req.headers.cookie);
+    const portalCookie = cookies.get(PORTAL_COOKIE_NAME);
+    return this.verifyPortalToken(portalCookie);
   }
 }
 
