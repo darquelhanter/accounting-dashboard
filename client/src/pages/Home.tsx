@@ -9,10 +9,10 @@ import { AlertRow, AlertIndicator } from "@/components/AlertBadge";
 import { AlertDetailsModal } from "@/components/AlertDetailsModal";
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
-  
-  const isApproved = isAuthenticated && user?.status === 'approved';
+
+  const isApproved = isAuthenticated && (user?.role === 'admin' || user?.status === 'approved');
 
   // Carregar alertas
   const { data: alertasSumario } = trpc.alertas.sumario.useQuery(undefined, {
@@ -24,8 +24,10 @@ export default function Home() {
     enabled: isApproved,
   });
 
+  if (loading) return null;
+
   if (!isAuthenticated) {
-    navigate("/login");
+    navigate("/admin/login");
     return null;
   }
 

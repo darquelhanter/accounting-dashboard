@@ -56,7 +56,7 @@ export default function Profile() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate("/admin/login");
   };
 
   if (!user) {
