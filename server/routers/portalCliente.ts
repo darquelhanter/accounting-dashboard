@@ -58,6 +58,60 @@ export const portalClienteRouter = router({
   documentos: clientePortalProcedure.query(async ({ ctx }) => {
     return db.getDocumentosByCliente(ctx.clientePortal.clienteId);
   }),
+
+  downloadDocumento: clientePortalProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const doc = await db.getDocumentoConteudo(input.id);
+      if (!doc) throw new TRPCError({ code: "NOT_FOUND", message: "Documento não encontrado" });
+      if (doc.clienteId !== ctx.clientePortal.clienteId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+      }
+      return doc;
+    }),
+
+  uploadDocumento: clientePortalProcedure
+    .input(z.object({
+      pasta: z.string().optional(),
+      nome: z.string().min(1),
+      descricao: z.string().optional(),
+      tipo: z.string().min(1),
+      tamanho: z.number().int().positive(),
+      conteudo: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      await db.createDocumento({
+        userId: 0,
+        clienteId: ctx.clientePortal.clienteId,
+        pasta: input.pasta ?? null,
+        nome: input.nome,
+        descricao: input.descricao ?? null,
+        tipo: input.tipo,
+        tamanho: input.tamanho,
+        conteudo: input.conteudo,
+      });
+      return { success: true };
+    }),
+
+  deleteDocumento: clientePortalProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const doc = await db.getDocumentoConteudo(input.id);
+      if (!doc) throw new TRPCError({ code: "NOT_FOUND", message: "Documento não encontrado" });
+      if (doc.clienteId !== ctx.clientePortal.clienteId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+      }
+      await db.deleteDocumento(input.id);
+      return { success: true };
+    }),
+
+  fluxoCaixa: clientePortalProcedure.query(async ({ ctx }) => {
+    const [mensalidades, servicos] = await Promise.all([
+      db.getMensalidadesByCliente(ctx.clientePortal.clienteId),
+      db.getServicosPrestadosByCliente(ctx.clientePortal.clienteId),
+    ]);
+    return { mensalidades, servicos };
+  }),
 });
 
 // Roteador admin para gerenciar acesso do portal

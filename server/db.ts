@@ -1194,6 +1194,12 @@ export async function deleteDocumento(id: number) {
   return db.delete(documentos).where(eq(documentos.id, id));
 }
 
+export async function getServicosPrestadosByCliente(clienteId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(servicosPrestados).where(eq(servicosPrestados.clienteId, clienteId));
+}
+
 export async function renamePastaDocumentos(clienteId: number, oldNome: string, newNome: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
