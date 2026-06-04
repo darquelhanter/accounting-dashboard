@@ -1565,6 +1565,14 @@ export async function deletePortalCliente(clienteId: number) {
   await db.delete(portalClientes).where(eq(portalClientes.clienteId, clienteId));
 }
 
+export async function updatePortalFluxoConfig(clienteId: number, mostrarMensalidades: boolean, mostrarServicos: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(portalClientes)
+    .set({ mostrarMensalidades, mostrarServicos })
+    .where(eq(portalClientes.clienteId, clienteId));
+}
+
 export async function verifyPortalClientePassword(cnpj: string, password: string) {
   const portal = await getPortalClienteByCnpj(cnpj);
   if (!portal || !portal.ativo) return null;

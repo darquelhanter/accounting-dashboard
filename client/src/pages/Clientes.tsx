@@ -1113,6 +1113,11 @@ function PortalAccessSection({ clienteId, cnpj }: { clienteId: number; cnpj: str
     onError: (e) => toast.error(e.message),
   });
 
+  const fluxoConfigMutation = trpc.portalAdmin.updateFluxoConfig.useMutation({
+    onSuccess: () => utils.portalAdmin.getByCliente.invalidate({ clienteId }),
+    onError: (e) => toast.error(e.message),
+  });
+
   const deleteMutation = trpc.portalAdmin.delete.useMutation({
     onSuccess: () => {
       toast.success("Acesso do portal removido!");
@@ -1186,6 +1191,33 @@ function PortalAccessSection({ clienteId, cnpj }: { clienteId: number; cnpj: str
             >
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Alterar senha"}
             </Button>
+          </div>
+
+          {/* Configuração do Fluxo de Caixa */}
+          <div className="pt-2 border-t space-y-2">
+            <p className="text-xs font-medium text-slate-600">Exibir no Fluxo de Caixa do cliente:</p>
+            {(
+              [
+                { campo: "mostrarMensalidades" as const, label: "Mensalidades" },
+                { campo: "mostrarServicos" as const, label: "Serviços avulsos" },
+              ] as const
+            ).map(({ campo, label }) => (
+              <label key={campo} className="flex items-center gap-2 cursor-pointer select-none">
+                <div
+                  onClick={() =>
+                    fluxoConfigMutation.mutate({
+                      clienteId,
+                      mostrarMensalidades: campo === "mostrarMensalidades" ? !acesso[campo] : acesso.mostrarMensalidades,
+                      mostrarServicos: campo === "mostrarServicos" ? !acesso[campo] : acesso.mostrarServicos,
+                    })
+                  }
+                  className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer ${acesso[campo] ? "bg-blue-600" : "bg-gray-300"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${acesso[campo] ? "translate-x-4" : ""}`} />
+                </div>
+                <span className="text-sm text-slate-700">{label}</span>
+              </label>
+            ))}
           </div>
         </div>
       ) : (

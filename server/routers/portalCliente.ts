@@ -106,9 +106,10 @@ export const portalClienteRouter = router({
     }),
 
   fluxoCaixa: clientePortalProcedure.query(async ({ ctx }) => {
+    const config = await db.getPortalClienteByClienteId(ctx.clientePortal.clienteId);
     const [mensalidades, servicos, lancamentos] = await Promise.all([
-      db.getMensalidadesByCliente(ctx.clientePortal.clienteId),
-      db.getServicosPrestadosByCliente(ctx.clientePortal.clienteId),
+      config?.mostrarMensalidades ? db.getMensalidadesByCliente(ctx.clientePortal.clienteId) : Promise.resolve([]),
+      config?.mostrarServicos ? db.getServicosPrestadosByCliente(ctx.clientePortal.clienteId) : Promise.resolve([]),
       db.getPortalFluxoCaixaByCliente(ctx.clientePortal.clienteId),
     ]);
     return { mensalidades, servicos, lancamentos };
@@ -191,6 +192,17 @@ export const portalAdminRouter = router({
     .input(z.object({ clienteId: z.number() }))
     .mutation(async ({ input }) => {
       await db.deletePortalCliente(input.clienteId);
+      return { success: true };
+    }),
+
+  updateFluxoConfig: adminProcedure
+    .input(z.object({
+      clienteId: z.number(),
+      mostrarMensalidades: z.boolean(),
+      mostrarServicos: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      await db.updatePortalFluxoConfig(input.clienteId, input.mostrarMensalidades, input.mostrarServicos);
       return { success: true };
     }),
 });

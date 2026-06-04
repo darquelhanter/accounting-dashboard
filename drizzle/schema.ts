@@ -217,6 +217,8 @@ export const portalClientes = mysqlTable("portal_clientes", {
   cnpj: varchar("cnpj", { length: 18 }).notNull(),
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   ativo: boolean("ativo").default(true).notNull(),
+  mostrarMensalidades: boolean("mostrarMensalidades").default(false).notNull(),
+  mostrarServicos: boolean("mostrarServicos").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
