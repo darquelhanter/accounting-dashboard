@@ -171,6 +171,10 @@ export default function PortalCliente() {
   // Filtro de mês no fluxo de caixa (null = Todos)
   const [filtroSortKey, setFiltroSortKey] = useState<string | null>(null);
 
+  // Toggles para exibir cobranças do escritório
+  const [mostrarMensalidades, setMostrarMensalidades] = useState(false);
+  const [mostrarServicos, setMostrarServicos] = useState(false);
+
   // Queries e mutations
   const utils = trpc.useUtils();
 
@@ -342,19 +346,23 @@ export default function PortalCliente() {
       }
       return map.get(sortKey)!;
     };
-    for (const m of mensalidades) {
-      get(m.mes, m.ano).saidas.push({
-        id: `men-${m.id}`, descricao: "Mensalidade (escritório)",
-        valor: Number(m.valor), tipo: "saida", deletavel: false,
-        status: m.status, dataPagamento: m.dataPagamento,
-      });
+    if (mostrarMensalidades) {
+      for (const m of mensalidades) {
+        get(m.mes, m.ano).saidas.push({
+          id: `men-${m.id}`, descricao: "Mensalidade (escritório)",
+          valor: Number(m.valor), tipo: "saida", deletavel: false,
+          status: m.status, dataPagamento: m.dataPagamento,
+        });
+      }
     }
-    for (const s of servicos) {
-      get(s.mes, s.ano).saidas.push({
-        id: `srv-${s.id}`, descricao: s.nomeServico,
-        valor: Number(s.valor), tipo: "saida", deletavel: false,
-        status: s.status,
-      });
+    if (mostrarServicos) {
+      for (const s of servicos) {
+        get(s.mes, s.ano).saidas.push({
+          id: `srv-${s.id}`, descricao: s.nomeServico,
+          valor: Number(s.valor), tipo: "saida", deletavel: false,
+          status: s.status,
+        });
+      }
     }
     for (const l of lancamentos) {
       const item: FluxoItem = {
@@ -366,7 +374,7 @@ export default function PortalCliente() {
       else grupo.saidas.push(item);
     }
     return Array.from(map.values()).sort((a, b) => b.sortKey.localeCompare(a.sortKey));
-  }, [mensalidades, servicos, lancamentos]);
+  }, [mensalidades, servicos, lancamentos, mostrarMensalidades, mostrarServicos]);
 
   const resumoGeral = useMemo(() => {
     let entradas = 0, saidas = 0;
@@ -755,6 +763,29 @@ export default function PortalCliente() {
               </Card>
             </div>
           )}
+
+          {/* Toggles de cobranças do escritório */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Incluir cobranças do escritório:</span>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <div
+                onClick={() => setMostrarMensalidades(v => !v)}
+                className={`relative w-9 h-5 rounded-full transition-colors ${mostrarMensalidades ? "bg-emerald-600" : "bg-gray-300"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${mostrarMensalidades ? "translate-x-4" : ""}`} />
+              </div>
+              <span className="text-sm text-gray-700">Mensalidades</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <div
+                onClick={() => setMostrarServicos(v => !v)}
+                className={`relative w-9 h-5 rounded-full transition-colors ${mostrarServicos ? "bg-emerald-600" : "bg-gray-300"}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${mostrarServicos ? "translate-x-4" : ""}`} />
+              </div>
+              <span className="text-sm text-gray-700">Serviços avulsos</span>
+            </label>
+          </div>
 
           {isLoadingFluxo ? (
             <div className="flex items-center justify-center py-20">
