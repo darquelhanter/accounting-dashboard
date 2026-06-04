@@ -83,7 +83,7 @@ export default function DashboardLayout({
             </p>
           </div>
           <Button
-            onClick={() => { window.location.href = "/login"; }}
+            onClick={() => { window.location.href = "/admin/login"; }}
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
@@ -110,7 +110,7 @@ export default function DashboardLayout({
               Conectado como: <span className="font-medium text-foreground">{user.email || user.name}</span>
             </p>
           </div>
-          <Button variant="outline" onClick={() => { window.location.href = "/login"; }}>
+          <Button variant="outline" onClick={() => { window.location.href = "/admin/login"; }}>
             Sair
           </Button>
         </div>
@@ -131,7 +131,7 @@ export default function DashboardLayout({
               Sua solicitação de acesso foi rejeitada. Entre em contato com o administrador para mais informações.
             </p>
           </div>
-          <Button variant="outline" onClick={() => { window.location.href = "/login"; }}>
+          <Button variant="outline" onClick={() => { window.location.href = "/admin/login"; }}>
             Sair
           </Button>
         </div>
