@@ -27,6 +27,18 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit2, Trash2, Loader2, Search, X, AlertCircle, KeyRound, Eye, EyeOff, Copy } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 function SenhaField({ value }: { value: string }) {
   const [visible, setVisible] = useState(false);
@@ -42,18 +54,6 @@ function SenhaField({ value }: { value: string }) {
     </div>
   );
 }
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -106,14 +106,14 @@ export default function ChecklistMensal() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [clienteAcessosId, setClienteAcessosId] = useState<number | null>(null);
 
+  const utils = trpc.useUtils();
+  const { data: clientes = [] } = trpc.clientes.list.useQuery();
+
   const clienteAcessosNome = clientes.find((c: any) => c.id === clienteAcessosId)?.nome ?? "";
   const { data: acessosCliente = [], isLoading: loadingAcessos } = trpc.acessos.listByCliente.useQuery(
     { clienteId: clienteAcessosId! },
     { enabled: !!clienteAcessosId }
   );
-
-  const utils = trpc.useUtils();
-  const { data: clientes = [] } = trpc.clientes.list.useQuery();
   const { data: obrigacoes = [] } = trpc.obrigacoes.list.useQuery();
   const { data: checklistItems = [], isLoading } = trpc.checklist.listByMonth.useQuery({
     mes: selectedMes,
