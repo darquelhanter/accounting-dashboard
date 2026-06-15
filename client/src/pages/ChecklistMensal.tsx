@@ -25,8 +25,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, Loader2, Search, X, AlertCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Search, X, AlertCircle, KeyRound, Eye, EyeOff, Copy } from "lucide-react";
 import { toast } from "sonner";
+
+function SenhaField({ value }: { value: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="flex items-center gap-1">
+      <span className="font-mono text-sm">{visible ? value : "••••••••"}</span>
+      <button onClick={() => setVisible(v => !v)} className="text-slate-400 hover:text-slate-700 ml-1">
+        {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      </button>
+      <button onClick={() => { navigator.clipboard.writeText(value); toast.success("Senha copiada!"); }} className="text-slate-400 hover:text-slate-700">
+        <Copy className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 import {
   AlertDialog,
   AlertDialogAction,
@@ -89,6 +104,13 @@ export default function ChecklistMensal() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [clienteAcessosId, setClienteAcessosId] = useState<number | null>(null);
+
+  const clienteAcessosNome = clientes.find((c: any) => c.id === clienteAcessosId)?.nome ?? "";
+  const { data: acessosCliente = [], isLoading: loadingAcessos } = trpc.acessos.listByCliente.useQuery(
+    { clienteId: clienteAcessosId! },
+    { enabled: !!clienteAcessosId }
+  );
 
   const utils = trpc.useUtils();
   const { data: clientes = [] } = trpc.clientes.list.useQuery();
@@ -630,7 +652,20 @@ export default function ChecklistMensal() {
                               onCheckedChange={() => handleSelectOne(item.id)}
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{cliente?.nome || "N/A"}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <span>{cliente?.nome || "N/A"}</span>
+                              {cliente && (
+                                <button
+                                  onClick={() => setClienteAcessosId(cliente.id)}
+                                  className="text-slate-400 hover:text-blue-600 transition-colors"
+                                  title="Ver acessos"
+                                >
+                                  <KeyRound className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>{obrigacao?.nome || "N/A"}</TableCell>
                           <TableCell>
                             <Select value={item.status} onValueChange={(value) => handleStatusChange(item.id, value)}>
@@ -764,6 +799,66 @@ export default function ChecklistMensal() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Acessos do Cliente */}
+      <Dialog open={!!clienteAcessosId} onOpenChange={(open) => { if (!open) setClienteAcessosId(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-blue-600" />
+              Acessos — {clienteAcessosNome}
+            </DialogTitle>
+          </DialogHeader>
+          {loadingAcessos ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            </div>
+          ) : (acessosCliente as any[]).length === 0 ? (
+            <div className="text-center py-8 text-slate-500 text-sm">
+              Nenhum acesso cadastrado para este cliente.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(acessosCliente as any[]).map((acesso: any) => (
+                <div key={acesso.id} className="border rounded-lg p-3 space-y-2 bg-slate-50">
+                  <p className="font-semibold text-slate-800 text-sm">{acesso.descricao}</p>
+                  {acesso.email && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500 w-20 shrink-0">E-mail</span>
+                      <div className="flex items-center gap-1 flex-1 justify-end min-w-0">
+                        <span className="font-mono text-slate-800 truncate">{acesso.email}</span>
+                        <button onClick={() => { navigator.clipboard.writeText(acesso.email); toast.success("E-mail copiado!"); }} className="text-slate-400 hover:text-slate-700 shrink-0">
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {acesso.senha && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500 w-20 shrink-0">Senha</span>
+                      <div className="flex-1 flex justify-end">
+                        <SenhaField value={acesso.senha} />
+                      </div>
+                    </div>
+                  )}
+                  {acesso.telefone && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500 w-20 shrink-0">Telefone</span>
+                      <span className="font-mono text-slate-800">{acesso.telefone}</span>
+                    </div>
+                  )}
+                  {acesso.observacao && (
+                    <div className="text-sm">
+                      <span className="text-slate-500">Obs: </span>
+                      <span className="text-slate-700">{acesso.observacao}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
