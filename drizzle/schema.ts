@@ -297,6 +297,7 @@ export const portalFluxoCaixa = mysqlTable("portal_fluxo_caixa", {
   clienteId: int("clienteId").notNull(),
   tipo: mysqlEnum("tipo", ["entrada", "saida"]).notNull(),
   descricao: varchar("descricao", { length: 255 }).notNull(),
+  categoria: varchar("categoria", { length: 100 }),
   valor: decimal("valor", { precision: 10, scale: 2 }).notNull(),
   mes: varchar("mes", { length: 10 }).notNull(),
   ano: int("ano").notNull(),

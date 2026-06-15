@@ -119,6 +119,7 @@ export const portalClienteRouter = router({
     .input(z.object({
       tipo: z.enum(["entrada", "saida"]),
       descricao: z.string().min(1, "Descrição é obrigatória"),
+      categoria: z.string().optional(),
       valor: z.number().positive("Valor deve ser positivo"),
       mes: z.string().min(1),
       ano: z.number().int().min(2000).max(2100),
@@ -128,6 +129,7 @@ export const portalClienteRouter = router({
         clienteId: ctx.clientePortal.clienteId,
         tipo: input.tipo,
         descricao: input.descricao,
+        categoria: input.categoria || undefined,
         valor: input.valor.toFixed(2),
         mes: input.mes,
         ano: input.ano,

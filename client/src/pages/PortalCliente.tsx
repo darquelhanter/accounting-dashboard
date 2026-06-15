@@ -56,13 +56,16 @@ function FluxoItemRow({
   item,
   onDelete,
 }: {
-  item: { id: string; descricao: string; valor: number; tipo: "entrada" | "saida"; status?: string; dataPagamento?: string | null };
+  item: { id: string; descricao: string; categoria?: string; valor: number; tipo: "entrada" | "saida"; status?: string; dataPagamento?: string | null };
   onDelete?: () => void;
 }) {
   return (
     <div className="flex items-center justify-between py-1.5 gap-2">
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-900 truncate">{item.descricao}</p>
+        {item.categoria && (
+          <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-500">{item.categoria}</span>
+        )}
         {item.dataPagamento && (
           <p className="text-xs text-gray-400">Pago em {new Date(item.dataPagamento).toLocaleDateString("pt-BR")}</p>
         )}
@@ -161,6 +164,7 @@ export default function PortalCliente() {
   const [showLancamento, setShowLancamento] = useState(false);
   const [lancTipo, setLancTipo] = useState<"entrada" | "saida">("entrada");
   const [lancDescricao, setLancDescricao] = useState("");
+  const [lancCategoria, setLancCategoria] = useState("");
   const [lancValor, setLancValor] = useState("");
   const [lancMes, setLancMes] = useState(() => {
     const nomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -238,6 +242,7 @@ export default function PortalCliente() {
       utils.portalCliente.fluxoCaixa.invalidate();
       setShowLancamento(false);
       setLancDescricao("");
+      setLancCategoria("");
       setLancValor("");
     },
     onError: (e) => toast.error(e.message || "Erro ao salvar lançamento"),
@@ -255,7 +260,7 @@ export default function PortalCliente() {
     const valor = parseFloat(lancValor.replace(",", "."));
     if (!lancDescricao.trim()) { toast.error("Informe a descrição."); return; }
     if (isNaN(valor) || valor <= 0) { toast.error("Informe um valor válido."); return; }
-    criarLancamentoMutation.mutate({ tipo: lancTipo, descricao: lancDescricao.trim(), valor, mes: lancMes, ano: lancAno });
+    criarLancamentoMutation.mutate({ tipo: lancTipo, descricao: lancDescricao.trim(), categoria: lancCategoria.trim() || undefined, valor, mes: lancMes, ano: lancAno });
   }
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -319,6 +324,7 @@ export default function PortalCliente() {
     id: string;
     dbId?: number;
     descricao: string;
+    categoria?: string;
     valor: number;
     tipo: "entrada" | "saida";
     deletavel: boolean;
@@ -360,6 +366,7 @@ export default function PortalCliente() {
     for (const l of lancamentos) {
       const item: FluxoItem = {
         id: `lan-${l.id}`, dbId: l.id, descricao: l.descricao,
+        categoria: l.categoria ?? undefined,
         valor: Number(l.valor), tipo: l.tipo, deletavel: true,
       };
       const grupo = get(l.mes, l.ano);
@@ -699,6 +706,15 @@ export default function PortalCliente() {
                       onChange={e => setLancDescricao(e.target.value)}
                     />
                   </div>
+                  {/* Categoria */}
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Categoria <span className="text-gray-400">(opcional)</span></label>
+                    <Input
+                      placeholder="Ex: Salários, Impostos, Receitas..."
+                      value={lancCategoria}
+                      onChange={e => setLancCategoria(e.target.value)}
+                    />
+                  </div>
                   {/* Valor */}
                   <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">Valor (R$)</label>
@@ -739,7 +755,7 @@ export default function PortalCliente() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => { setShowLancamento(false); setLancDescricao(""); setLancValor(""); }}
+                      onClick={() => { setShowLancamento(false); setLancDescricao(""); setLancCategoria(""); setLancValor(""); }}
                     >
                       Cancelar
                     </Button>

@@ -1212,6 +1212,7 @@ export async function createPortalFluxoCaixa(data: {
   clienteId: number;
   tipo: "entrada" | "saida";
   descricao: string;
+  categoria?: string;
   valor: string;
   mes: string;
   ano: number;
