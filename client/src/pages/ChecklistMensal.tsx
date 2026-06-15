@@ -84,6 +84,7 @@ export default function ChecklistMensal() {
   const [selectedMes, setSelectedMes] = useState(MESES[new Date().getMonth()]);
   const [selectedAno, setSelectedAno] = useState(new Date().getFullYear());
   const [selectedCliente, setSelectedCliente] = useState<string>("Todos");
+  const [selectedObrigacao, setSelectedObrigacao] = useState<string>("Todos");
   const [selectedStatus, setSelectedStatus] = useState<string>("Todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -135,14 +136,15 @@ export default function ChecklistMensal() {
       const obrigacao = obrigacoes.find((o: any) => o.id === item.obrigacaoId);
       
       const matchCliente = selectedCliente === "Todos" || item.clienteId === parseInt(selectedCliente);
+      const matchObrigacao = selectedObrigacao === "Todos" || item.obrigacaoId === parseInt(selectedObrigacao);
       const matchStatus = selectedStatus === "Todos" || item.status === selectedStatus;
-      const matchSearch = !searchTerm || 
+      const matchSearch = !searchTerm ||
         cliente?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
         obrigacao?.nome.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchCliente && matchStatus && matchSearch;
+      return matchCliente && matchObrigacao && matchStatus && matchSearch;
     });
-  }, [checklistItems, clientes, obrigacoes, selectedCliente, selectedStatus, searchTerm]);
+  }, [checklistItems, clientes, obrigacoes, selectedCliente, selectedObrigacao, selectedStatus, searchTerm]);
 
   // Paginar
   const totalPages = Math.ceil(filteredChecklist.length / ITEMS_PER_PAGE);
@@ -447,7 +449,7 @@ export default function ChecklistMensal() {
       {/* Filtros */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
             <div>
               <label className="text-sm font-medium text-slate-700">Mês</label>
               <Select value={selectedMes} onValueChange={(value) => {
@@ -507,6 +509,26 @@ export default function ChecklistMensal() {
             </div>
 
             <div>
+              <label className="text-sm font-medium text-slate-700">Obrigação</label>
+              <Select value={selectedObrigacao} onValueChange={(value) => {
+                setSelectedObrigacao(value);
+                setCurrentPage(1);
+              }}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Todos">Todas</SelectItem>
+                  {obrigacoes.map((o: any) => (
+                    <SelectItem key={o.id} value={o.id.toString()}>
+                      {o.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <label className="text-sm font-medium text-slate-700">Status</label>
               <Select value={selectedStatus} onValueChange={(value) => {
                 setSelectedStatus(value);
@@ -526,7 +548,7 @@ export default function ChecklistMensal() {
               </Select>
             </div>
 
-            <div className="md:col-span-2">
+            <div>
               <label className="text-sm font-medium text-slate-700">Buscar</label>
               <div className="relative mt-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
