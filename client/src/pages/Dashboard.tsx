@@ -202,7 +202,7 @@ export default function Dashboard() {
         {/* Header com botão de upload e filtros */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard Contábil</h1>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">Contabilidade</h1>
             <p className="text-slate-600">Gestão financeira e operacional do seu escritório</p>
           </div>
           <div className="flex gap-3">
