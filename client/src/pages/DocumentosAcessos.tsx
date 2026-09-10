@@ -58,6 +58,7 @@ import {
   KeyRound,
   Building2,
   FolderPlus,
+  FolderSymlink,
   ArrowLeft,
   Pencil,
 } from "lucide-react";
@@ -141,6 +142,9 @@ function TabDocumentos() {
   const [renameDocNome, setRenameDocNome] = useState("");
   const [isDeletePastaOpen, setIsDeletePastaOpen] = useState(false);
   const [deletePastaAlvo, setDeletePastaAlvo] = useState("");
+  const [isMovePastaOpen, setIsMovePastaOpen] = useState(false);
+  const [movePastaOrigem, setMovePastaOrigem] = useState("");
+  const [movePastaDestino, setMovePastaDestino] = useState("__raiz__");
   const [pastasVazias, setPastasVazias] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -203,6 +207,15 @@ function TabDocumentos() {
         setCaminho([...caminho.slice(0, -1), newSegment]);
       }
       toast.success("Pasta renomeada!");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const movePastaMutation = trpc.documentos.renamePasta.useMutation({
+    onSuccess: () => {
+      refetch();
+      setIsMovePastaOpen(false);
+      toast.success("Pasta movida!");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -289,10 +302,29 @@ function TabDocumentos() {
     return Array.from(set).sort();
   }, [rawDocs, pastasVazias]);
 
+  // Todas as pastas conhecidas + pastas intermediárias (ancestrais)
+  const todasPastasComAncestrais = useMemo(() => {
+    const set = new Set<string>();
+    const addComAncestrais = (path: string) => {
+      const parts = path.split("/");
+      for (let i = 1; i <= parts.length; i++) set.add(parts.slice(0, i).join("/"));
+    };
+    for (const d of rawDocs) { if (d.pasta) addComAncestrais(d.pasta); }
+    for (const v of pastasVazias) addComAncestrais(v);
+    return Array.from(set).sort();
+  }, [rawDocs, pastasVazias]);
+
   const totalPages = Math.max(1, Math.ceil(arquivosNivel.length / ITEMS_PER_PAGE));
   const paginated = arquivosNivel.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const semPastaCount = rawDocs.filter((d) => !d.pasta).length;
+
+  const movePastaParent = movePastaOrigem.includes("/")
+    ? movePastaOrigem.split("/").slice(0, -1).join("/")
+    : "";
+  const moveDestinos = todasPastasComAncestrais.filter(
+    (p) => p !== movePastaOrigem && !p.startsWith(movePastaOrigem + "/") && p !== movePastaParent
+  );
 
   function entrarPasta(nome: string) {
     setCaminho((prev) => [...prev, nome]);
@@ -409,6 +441,62 @@ function TabDocumentos() {
       setIsRenamePastaOpen(false);
       toast.success("Descrição atualizada!");
     }
+  }
+
+  function openMovePasta(segmento: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (segmento === "__sem_pasta__") { toast.error('"Sem pasta" não pode ser movida.'); return; }
+    const fullPath = caminho.length > 0 ? caminhoStr + "/" + segmento : segmento;
+    const estaAninhada = fullPath.includes("/");
+    setMovePastaOrigem(fullPath);
+    setMovePastaDestino(estaAninhada ? "__raiz__" : "");
+    setIsMovePastaOpen(true);
+  }
+
+  function confirmarMovePasta() {
+    if (!clienteId) { toast.error("Selecione uma empresa para mover a pasta."); return; }
+    const origem = movePastaOrigem;
+    const segmento = origem.split("/").pop()!;
+    const destino = movePastaDestino === "__raiz__" ? "" : movePastaDestino;
+    const novoPath = destino ? destino + "/" + segmento : segmento;
+
+    if (novoPath === origem) { toast.error("A pasta já está nesse local."); return; }
+    if (destino === origem || destino.startsWith(origem + "/")) {
+      toast.error("Não é possível mover uma pasta para dentro dela mesma.");
+      return;
+    }
+    const jaExiste =
+      todasPastasComAncestrais.includes(novoPath) ||
+      rawDocs.some((d) => d.pasta === novoPath || d.pasta?.startsWith(novoPath + "/"));
+    if (jaExiste) { toast.error(`Já existe uma pasta "${segmento}" nesse local.`); return; }
+
+    const descricaoOrigem = getPastaDescricao(origem);
+    movePastaMutation.mutate(
+      { clienteId, oldNome: origem, newNome: novoPath },
+      {
+        onSuccess: () => {
+          setPastasVazias((prev) =>
+            prev.map((p) =>
+              p === origem
+                ? novoPath
+                : p.startsWith(origem + "/")
+                ? novoPath + p.slice(origem.length)
+                : p
+            )
+          );
+          if (descricaoOrigem) {
+            upsertDescricaoMutation.mutate({ clienteId, path: novoPath, descricao: descricaoOrigem });
+          }
+          deletePastaDescricaoMutation.mutate(
+            { clienteId, path: origem },
+            { onSuccess: () => refetchDescricoes() }
+          );
+          if (caminhoStr === origem || caminhoStr.startsWith(origem + "/")) {
+            setCaminho((novoPath + caminhoStr.slice(origem.length)).split("/"));
+          }
+        },
+      }
+    );
   }
 
   function openRenameDoc(doc: { id: number; nome: string }, e: React.MouseEvent) {
@@ -546,6 +634,10 @@ function TabDocumentos() {
               <Button variant="outline" size="sm" onClick={(e) => openRenamePasta(caminho[caminho.length - 1], e)} className="flex items-center gap-1.5">
                 <Pencil className="h-3.5 w-3.5" />
                 Editar Pasta
+              </Button>
+              <Button variant="outline" size="sm" onClick={(e) => openMovePasta(caminho[caminho.length - 1], e)} className="flex items-center gap-1.5">
+                <FolderSymlink className="h-3.5 w-3.5" />
+                Mover Pasta
               </Button>
               <Button variant="outline" size="sm" onClick={(e) => openDeletePasta(caminho[caminho.length - 1], e)} className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
                 <Trash2 className="h-3.5 w-3.5" />
@@ -724,6 +816,9 @@ function TabDocumentos() {
                           <button onClick={(e) => openNovaPastaInside(seg, e)} title="Nova subpasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-yellow-50 hover:border-yellow-200 shadow-sm">
                             <FolderPlus className="h-3.5 w-3.5 text-yellow-500" />
                           </button>
+                          <button onClick={(e) => openMovePasta(seg, e)} title="Mover pasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm">
+                            <FolderSymlink className="h-3.5 w-3.5 text-indigo-500" />
+                          </button>
                           <button onClick={(e) => openRenamePasta(seg, e)} title="Editar pasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm">
                             <Pencil className="h-3.5 w-3.5 text-gray-500" />
                           </button>
@@ -778,6 +873,9 @@ function TabDocumentos() {
                         <>
                           <button onClick={(e) => openNovaPastaInside(seg, e)} title="Nova subpasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-yellow-50 hover:border-yellow-200 shadow-sm">
                             <FolderPlus className="h-3.5 w-3.5 text-yellow-500" />
+                          </button>
+                          <button onClick={(e) => openMovePasta(seg, e)} title="Mover pasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-indigo-50 hover:border-indigo-200 shadow-sm">
+                            <FolderSymlink className="h-3.5 w-3.5 text-indigo-500" />
                           </button>
                           <button onClick={(e) => openRenamePasta(seg, e)} title="Editar pasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm">
                             <Pencil className="h-3.5 w-3.5 text-gray-500" />
@@ -1019,6 +1117,50 @@ function TabDocumentos() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal Mover Pasta */}
+      <Dialog open={isMovePastaOpen} onOpenChange={(v) => { setIsMovePastaOpen(v); if (!v) { setMovePastaOrigem(""); setMovePastaDestino("__raiz__"); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Mover Pasta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              <Folder className="h-3.5 w-3.5 text-yellow-400" />
+              Movendo <span className="font-medium text-gray-700">{movePastaOrigem.split("/").pop()}</span>
+              {movePastaParent && <span className="text-gray-400">de {movePastaParent}</span>}
+            </p>
+            <div className="space-y-1">
+              <Label>Mover para</Label>
+              <Select value={movePastaDestino} onValueChange={setMovePastaDestino}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {movePastaParent !== "" && (
+                    <SelectItem value="__raiz__">📁 Raiz (pasta principal)</SelectItem>
+                  )}
+                  {moveDestinos.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {moveDestinos.length === 0 && movePastaParent === "" && (
+                <p className="text-xs text-gray-400">Nenhuma outra pasta disponível como destino.</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsMovePastaOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={confirmarMovePasta}
+                disabled={movePastaMutation.isPending || (movePastaDestino !== "__raiz__" && !movePastaDestino)}
+              >
+                {movePastaMutation.isPending ? "Movendo..." : "Mover"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Nova Pasta / Nova Subpasta */}
       <Dialog open={isNovaPastaOpen} onOpenChange={(v) => { setIsNovaPastaOpen(v); if (!v) { setNovaPastaNome(""); setNovaPastaParent(null); } }}>
