@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -84,7 +84,7 @@ function ModalLancamento({
   const [form, setForm] = useState(initial);
 
   // Sync quando initial muda (editar vs criar)
-  useMemo(() => { setForm(initial); }, [open]);
+  useEffect(() => { setForm(initial); }, [open]);
 
   function handleSave() {
     if (!form.descricao.trim()) { toast.error("Informe a descrição."); return; }
@@ -415,7 +415,7 @@ function TabDocumentos({ clienteId }: { clienteId: number }) {
     { enabled: !!downloadingId }
   );
 
-  useMemo(() => {
+  useEffect(() => {
     if (downloadQuery.data && downloadingId) {
       const doc = downloadQuery.data as any;
       const link = document.createElement("a");
@@ -425,7 +425,7 @@ function TabDocumentos({ clienteId }: { clienteId: number }) {
       setDownloadingId(null);
       toast.success("Download iniciado!");
     }
-  }, [downloadQuery.data]);
+  }, [downloadQuery.data, downloadingId]);
 
   if (isLoading) return <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>;
 
