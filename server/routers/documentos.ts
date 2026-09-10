@@ -8,6 +8,7 @@ import {
   deleteDocumento,
   renamePastaDocumentos,
   renameDocumentoNome,
+  updateDocumentoPasta,
   getPastasDescricoes,
   upsertPastaDescricao,
   deletePastaDescricao,
@@ -84,6 +85,13 @@ export const documentosRouter = router({
     .input(z.object({ id: z.number(), nome: z.string().min(1) }))
     .mutation(async ({ input }) => {
       return renameDocumentoNome(input.id, input.nome);
+    }),
+
+  moveDocumento: protectedProcedure
+    .input(z.object({ id: z.number(), pasta: z.string().nullable() }))
+    .mutation(async ({ input }) => {
+      const pasta = input.pasta && input.pasta.trim() ? input.pasta.trim() : null;
+      return updateDocumentoPasta(input.id, pasta);
     }),
 
   getPastasDescricoes: protectedProcedure

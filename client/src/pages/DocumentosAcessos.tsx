@@ -61,6 +61,7 @@ import {
   FolderSymlink,
   ArrowLeft,
   Pencil,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -140,6 +141,11 @@ function TabDocumentos() {
   const [isRenameDocOpen, setIsRenameDocOpen] = useState(false);
   const [renameDocId, setRenameDocId] = useState<number | null>(null);
   const [renameDocNome, setRenameDocNome] = useState("");
+  const [isMoveDocOpen, setIsMoveDocOpen] = useState(false);
+  const [moveDocId, setMoveDocId] = useState<number | null>(null);
+  const [moveDocNome, setMoveDocNome] = useState("");
+  const [moveDocDestino, setMoveDocDestino] = useState("__raiz__");
+  const [previewDoc, setPreviewDoc] = useState<{ id: number; nome: string; tipo: string } | null>(null);
   const [isDeletePastaOpen, setIsDeletePastaOpen] = useState(false);
   const [deletePastaAlvo, setDeletePastaAlvo] = useState("");
   const [isMovePastaOpen, setIsMovePastaOpen] = useState(false);
@@ -231,6 +237,17 @@ function TabDocumentos() {
     onError: (err) => toast.error(err.message),
   });
 
+  const moveDocMutation = trpc.documentos.moveDocumento.useMutation({
+    onSuccess: () => {
+      refetch();
+      setIsMoveDocOpen(false);
+      setMoveDocId(null);
+      setMoveDocNome("");
+      toast.success("Arquivo movido!");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const { data: pastasDescricoesList, refetch: refetchDescricoes } = trpc.documentos.getPastasDescricoes.useQuery(
     { clienteId: clienteId! },
     { enabled: !!clienteId }
@@ -249,6 +266,11 @@ function TabDocumentos() {
   const downloadQuery = trpc.documentos.download.useQuery(
     { id: downloadingId! },
     { enabled: !!downloadingId }
+  );
+
+  const previewQuery = trpc.documentos.download.useQuery(
+    { id: previewDoc?.id ?? -1 },
+    { enabled: !!previewDoc }
   );
 
   useEffect(() => {
@@ -325,6 +347,7 @@ function TabDocumentos() {
   const moveDestinos = todasPastasComAncestrais.filter(
     (p) => p !== movePastaOrigem && !p.startsWith(movePastaOrigem + "/") && p !== movePastaParent
   );
+  const moveDocDestinos = todasPastasComAncestrais.filter((p) => p !== caminhoStr);
 
   function entrarPasta(nome: string) {
     setCaminho((prev) => [...prev, nome]);
@@ -510,6 +533,24 @@ function TabDocumentos() {
     const nome = renameDocNome.trim();
     if (!nome || !renameDocId) { toast.error("Digite um nome para o arquivo."); return; }
     renameDocMutation.mutate({ id: renameDocId, nome });
+  }
+
+  function openMoveDoc(doc: { id: number; nome: string }, e: React.MouseEvent) {
+    e.stopPropagation();
+    setMoveDocId(doc.id);
+    setMoveDocNome(doc.nome);
+    setMoveDocDestino(caminho[0] === "__sem_pasta__" ? "" : "__raiz__");
+    setIsMoveDocOpen(true);
+  }
+
+  function confirmarMoveDoc() {
+    if (!moveDocId) return;
+    const destino = moveDocDestino === "__raiz__" ? null : moveDocDestino.trim();
+    if (destino === caminhoStr || (destino === null && caminho[0] === "__sem_pasta__")) {
+      toast.error("O arquivo já está nesse local.");
+      return;
+    }
+    moveDocMutation.mutate({ id: moveDocId, pasta: destino });
   }
 
   function handleFileDrop(e: React.DragEvent) {
@@ -974,8 +1015,14 @@ function TabDocumentos() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" title="Visualizar" onClick={() => setPreviewDoc({ id: doc.id, nome: doc.nome, tipo: doc.tipo })}>
+                                <Eye className="h-4 w-4 text-gray-500" />
+                              </Button>
                               <Button variant="ghost" size="icon" title="Renomear" onClick={(e) => openRenameDoc(doc, e)}>
                                 <Pencil className="h-4 w-4 text-gray-400" />
+                              </Button>
+                              <Button variant="ghost" size="icon" title="Mover" onClick={(e) => openMoveDoc(doc, e)}>
+                                <FolderSymlink className="h-4 w-4 text-indigo-500" />
                               </Button>
                               <Button
                                 variant="ghost" size="icon" title="Baixar"
@@ -1088,6 +1135,93 @@ function TabDocumentos() {
                 {renameDocMutation.isPending ? "Salvando..." : "Renomear"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Mover Arquivo */}
+      <Dialog open={isMoveDocOpen} onOpenChange={(v) => { setIsMoveDocOpen(v); if (!v) { setMoveDocId(null); setMoveDocNome(""); setMoveDocDestino("__raiz__"); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Mover Arquivo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              <FileText className="h-3.5 w-3.5 text-gray-400" />
+              Movendo <span className="font-medium text-gray-700 truncate">{moveDocNome}</span>
+            </p>
+            <div className="space-y-1">
+              <Label>Mover para</Label>
+              <Select value={moveDocDestino} onValueChange={setMoveDocDestino}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {caminho[0] !== "__sem_pasta__" && (
+                    <SelectItem value="__raiz__">📁 Raiz (sem pasta)</SelectItem>
+                  )}
+                  {moveDocDestinos.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {moveDocDestinos.length === 0 && (
+                <p className="text-xs text-gray-400">Nenhuma outra pasta disponível como destino.</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsMoveDocOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={confirmarMoveDoc}
+                disabled={moveDocMutation.isPending || (moveDocDestino !== "__raiz__" && !moveDocDestino)}
+              >
+                {moveDocMutation.isPending ? "Movendo..." : "Mover"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Visualizar Arquivo */}
+      <Dialog open={!!previewDoc} onOpenChange={(v) => { if (!v) setPreviewDoc(null); }}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">{previewDoc?.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="mt-2">
+            {previewQuery.isLoading ? (
+              <div className="flex items-center justify-center py-24 text-gray-400 text-sm animate-pulse">
+                Carregando pré-visualização...
+              </div>
+            ) : previewQuery.isError ? (
+              <p className="text-center text-red-500 py-24 text-sm">Erro ao carregar o arquivo.</p>
+            ) : previewQuery.data ? (
+              (() => {
+                const d = previewQuery.data as { conteudo: string; nome: string; tipo: string };
+                const tipo = d.tipo || "";
+                if (tipo.includes("image")) {
+                  return <img src={d.conteudo} alt={d.nome} className="max-h-[75vh] mx-auto object-contain rounded" />;
+                }
+                if (tipo.includes("pdf")) {
+                  return <iframe src={d.conteudo} title={d.nome} className="w-full h-[75vh] border rounded bg-white" />;
+                }
+                if (tipo.startsWith("text/") || tipo.includes("json") || tipo.includes("xml")) {
+                  return <iframe src={d.conteudo} title={d.nome} className="w-full h-[60vh] border rounded bg-white" />;
+                }
+                return (
+                  <div className="text-center py-16 text-gray-500 space-y-3">
+                    <File className="h-12 w-12 mx-auto opacity-30" />
+                    <p className="text-sm">Pré-visualização não disponível para este tipo de arquivo.</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => { if (previewDoc) setDownloadingId(previewDoc.id); }}
+                    >
+                      <Download className="h-4 w-4 mr-1" /> Baixar arquivo
+                    </Button>
+                  </div>
+                );
+              })()
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
