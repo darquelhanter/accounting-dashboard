@@ -1270,6 +1270,19 @@ export async function renameDocumentoNome(id: number, nome: string) {
   return db.update(documentos).set({ nome }).where(eq(documentos.id, id));
 }
 
+export async function updateDocumento(
+  id: number,
+  data: { nome?: string; descricao?: string | null }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const set: Record<string, unknown> = {};
+  if (data.nome !== undefined) set.nome = data.nome;
+  if (data.descricao !== undefined) set.descricao = data.descricao;
+  if (Object.keys(set).length === 0) return;
+  return db.update(documentos).set(set).where(eq(documentos.id, id));
+}
+
 export async function updateDocumentoPasta(id: number, pasta: string | null) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

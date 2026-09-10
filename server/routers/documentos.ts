@@ -7,7 +7,7 @@ import {
   createDocumento,
   deleteDocumento,
   renamePastaDocumentos,
-  renameDocumentoNome,
+  updateDocumento,
   updateDocumentoPasta,
   getPastasDescricoes,
   upsertPastaDescricao,
@@ -82,9 +82,21 @@ export const documentosRouter = router({
     }),
 
   renameDocumento: protectedProcedure
-    .input(z.object({ id: z.number(), nome: z.string().min(1) }))
+    .input(
+      z.object({
+        id: z.number(),
+        nome: z.string().min(1),
+        descricao: z.string().optional(),
+      })
+    )
     .mutation(async ({ input }) => {
-      return renameDocumentoNome(input.id, input.nome);
+      return updateDocumento(input.id, {
+        nome: input.nome,
+        // só altera a descrição quando o campo é enviado explicitamente
+        ...(input.descricao !== undefined
+          ? { descricao: input.descricao.trim() ? input.descricao.trim() : null }
+          : {}),
+      });
     }),
 
   moveDocumento: protectedProcedure

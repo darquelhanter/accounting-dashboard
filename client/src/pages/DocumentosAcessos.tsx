@@ -141,6 +141,7 @@ function TabDocumentos() {
   const [isRenameDocOpen, setIsRenameDocOpen] = useState(false);
   const [renameDocId, setRenameDocId] = useState<number | null>(null);
   const [renameDocNome, setRenameDocNome] = useState("");
+  const [renameDocDescricao, setRenameDocDescricao] = useState("");
   const [isMoveDocOpen, setIsMoveDocOpen] = useState(false);
   const [moveDocId, setMoveDocId] = useState<number | null>(null);
   const [moveDocNome, setMoveDocNome] = useState("");
@@ -232,7 +233,8 @@ function TabDocumentos() {
       setIsRenameDocOpen(false);
       setRenameDocId(null);
       setRenameDocNome("");
-      toast.success("Arquivo renomeado!");
+      setRenameDocDescricao("");
+      toast.success("Arquivo atualizado!");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -522,17 +524,18 @@ function TabDocumentos() {
     );
   }
 
-  function openRenameDoc(doc: { id: number; nome: string }, e: React.MouseEvent) {
+  function openRenameDoc(doc: { id: number; nome: string; descricao?: string | null }, e: React.MouseEvent) {
     e.stopPropagation();
     setRenameDocId(doc.id);
     setRenameDocNome(doc.nome);
+    setRenameDocDescricao(doc.descricao ?? "");
     setIsRenameDocOpen(true);
   }
 
   function confirmarRenameDoc() {
     const nome = renameDocNome.trim();
     if (!nome || !renameDocId) { toast.error("Digite um nome para o arquivo."); return; }
-    renameDocMutation.mutate({ id: renameDocId, nome });
+    renameDocMutation.mutate({ id: renameDocId, nome, descricao: renameDocDescricao });
   }
 
   function openMoveDoc(doc: { id: number; nome: string }, e: React.MouseEvent) {
@@ -1018,7 +1021,7 @@ function TabDocumentos() {
                               <Button variant="ghost" size="icon" title="Visualizar" onClick={() => setPreviewDoc({ id: doc.id, nome: doc.nome, tipo: doc.tipo })}>
                                 <Eye className="h-4 w-4 text-gray-500" />
                               </Button>
-                              <Button variant="ghost" size="icon" title="Renomear" onClick={(e) => openRenameDoc(doc, e)}>
+                              <Button variant="ghost" size="icon" title="Editar (nome e descrição)" onClick={(e) => openRenameDoc(doc, e)}>
                                 <Pencil className="h-4 w-4 text-gray-400" />
                               </Button>
                               <Button variant="ghost" size="icon" title="Mover" onClick={(e) => openMoveDoc(doc, e)}>
@@ -1112,15 +1115,15 @@ function TabDocumentos() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Renomear Arquivo */}
-      <Dialog open={isRenameDocOpen} onOpenChange={(v) => { setIsRenameDocOpen(v); if (!v) { setRenameDocId(null); setRenameDocNome(""); } }}>
+      {/* Modal Editar Arquivo (nome + descrição) */}
+      <Dialog open={isRenameDocOpen} onOpenChange={(v) => { setIsRenameDocOpen(v); if (!v) { setRenameDocId(null); setRenameDocNome(""); setRenameDocDescricao(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Renomear Arquivo</DialogTitle>
+            <DialogTitle>Editar Arquivo</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-1">
-              <Label>Novo nome</Label>
+              <Label>Nome</Label>
               <Input
                 placeholder="Nome do arquivo"
                 value={renameDocNome}
@@ -1129,10 +1132,19 @@ function TabDocumentos() {
                 autoFocus
               />
             </div>
+            <div className="space-y-1">
+              <Label>Descrição <span className="text-gray-400 font-normal">(opcional)</span></Label>
+              <Textarea
+                placeholder="Ex: Contrato social, Balanço 2024..."
+                value={renameDocDescricao}
+                onChange={(e) => setRenameDocDescricao(e.target.value)}
+                rows={3}
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsRenameDocOpen(false)}>Cancelar</Button>
               <Button onClick={confirmarRenameDoc} disabled={renameDocMutation.isPending}>
-                {renameDocMutation.isPending ? "Salvando..." : "Renomear"}
+                {renameDocMutation.isPending ? "Salvando..." : "Salvar"}
               </Button>
             </div>
           </div>

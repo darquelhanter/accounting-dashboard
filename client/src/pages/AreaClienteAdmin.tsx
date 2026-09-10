@@ -417,6 +417,7 @@ function TabDocumentos({ clienteId }: { clienteId: number }) {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [renameDocId, setRenameDocId] = useState<number | null>(null);
   const [renameDocNome, setRenameDocNome] = useState("");
+  const [renameDocDescricao, setRenameDocDescricao] = useState("");
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -433,9 +434,14 @@ function TabDocumentos({ clienteId }: { clienteId: number }) {
   });
 
   const renameMutation = trpc.documentos.renameDocumento.useMutation({
-    onSuccess: () => { refetch(); setIsRenameOpen(false); toast.success("Arquivo renomeado!"); },
+    onSuccess: () => { refetch(); setIsRenameOpen(false); toast.success("Arquivo atualizado!"); },
     onError: (e) => toast.error(e.message),
   });
+
+  function salvarRenameDoc() {
+    if (!renameDocId || !renameDocNome.trim()) { toast.error("Informe o nome do arquivo."); return; }
+    renameMutation.mutate({ id: renameDocId, nome: renameDocNome.trim(), descricao: renameDocDescricao });
+  }
 
   const uploadMutation = trpc.documentos.upload.useMutation({
     onSuccess: () => { refetch(); setIsUploadOpen(false); setUploadFile(null); setUploadDescricao(""); setUploadPasta(""); toast.success("Documento enviado!"); },
@@ -549,10 +555,11 @@ function TabDocumentos({ clienteId }: { clienteId: number }) {
                   <FileText className="h-4 w-4 text-gray-400 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{doc.nome}</p>
-                    <p className="text-xs text-gray-500">{formatBytes(doc.tamanho)} · {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString("pt-BR") : "—"}</p>
+                    {doc.descricao && <p className="text-xs text-gray-500 truncate">{doc.descricao}</p>}
+                    <p className="text-xs text-gray-400">{formatBytes(doc.tamanho)} · {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString("pt-BR") : "—"}</p>
                   </div>
-                  {/* Renomear */}
-                  <Button variant="ghost" size="icon" title="Renomear" onClick={() => { setRenameDocId(doc.id); setRenameDocNome(doc.nome); setIsRenameOpen(true); }}>
+                  {/* Editar */}
+                  <Button variant="ghost" size="icon" title="Editar (nome e descrição)" onClick={() => { setRenameDocId(doc.id); setRenameDocNome(doc.nome); setRenameDocDescricao(doc.descricao ?? ""); setIsRenameOpen(true); }}>
                     <Pencil className="h-4 w-4 text-gray-400" />
                   </Button>
                   {/* Download */}
@@ -585,24 +592,33 @@ function TabDocumentos({ clienteId }: { clienteId: number }) {
         ))
       )}
 
-      {/* Modal Renomear */}
-      <Dialog open={isRenameOpen} onOpenChange={(v) => { setIsRenameOpen(v); if (!v) { setRenameDocId(null); setRenameDocNome(""); } }}>
+      {/* Modal Editar Arquivo */}
+      <Dialog open={isRenameOpen} onOpenChange={(v) => { setIsRenameOpen(v); if (!v) { setRenameDocId(null); setRenameDocNome(""); setRenameDocDescricao(""); } }}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Renomear Arquivo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Editar Arquivo</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-1">
-              <Label>Novo nome</Label>
+              <Label>Nome</Label>
               <Input
                 value={renameDocNome}
                 onChange={(e) => setRenameDocNome(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && renameDocId && renameMutation.mutate({ id: renameDocId, nome: renameDocNome.trim() })}
+                onKeyDown={(e) => e.key === "Enter" && salvarRenameDoc()}
                 autoFocus
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Descrição <span className="text-gray-400 font-normal">(opcional)</span></Label>
+              <Textarea
+                placeholder="Ex: Contrato social, Balanço 2024..."
+                value={renameDocDescricao}
+                onChange={(e) => setRenameDocDescricao(e.target.value)}
+                rows={3}
               />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsRenameOpen(false)}>Cancelar</Button>
-              <Button onClick={() => renameDocId && renameMutation.mutate({ id: renameDocId, nome: renameDocNome.trim() })} disabled={renameMutation.isPending}>
-                {renameMutation.isPending ? "Salvando..." : "Renomear"}
+              <Button onClick={salvarRenameDoc} disabled={renameMutation.isPending}>
+                {renameMutation.isPending ? "Salvando..." : "Salvar"}
               </Button>
             </div>
           </div>
