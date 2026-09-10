@@ -7,6 +7,7 @@ import {
   createDocumento,
   deleteDocumento,
   renamePastaDocumentos,
+  renameDocumentoNome,
 } from "../db";
 
 export const documentosRouter = router({
@@ -73,5 +74,11 @@ export const documentosRouter = router({
     }))
     .mutation(async ({ input }) => {
       return renamePastaDocumentos(input.clienteId, input.oldNome, input.newNome);
+    }),
+
+  renameDocumento: protectedProcedure
+    .input(z.object({ id: z.number(), nome: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      return renameDocumentoNome(input.id, input.nome);
     }),
 });

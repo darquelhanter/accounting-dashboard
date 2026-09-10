@@ -26,6 +26,7 @@ import ServicosPrestados from "./pages/ServicosPrestados";
 import DocumentosAcessos from "./pages/DocumentosAcessos";
 import FluxoCaixa from "./pages/FluxoCaixa";
 import Responsaveis from "./pages/Responsaveis";
+import AreaClienteAdmin from "./pages/AreaClienteAdmin";
 
 function Router() {
   return (
@@ -57,6 +58,7 @@ function Router() {
       <Route path={"/acessos"} component={() => <DashboardLayout><DocumentosAcessos /></DashboardLayout>} />
       <Route path={"/fluxo-caixa"} component={() => <DashboardLayout><FluxoCaixa /></DashboardLayout>} />
       <Route path={"/responsaveis"} component={() => <DashboardLayout><Responsaveis /></DashboardLayout>} />
+      <Route path={"/area-cliente"} component={() => <DashboardLayout><AreaClienteAdmin /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

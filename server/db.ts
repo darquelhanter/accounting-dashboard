@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis, socios, portalClientes, portalFluxoCaixa } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1231,12 +1231,43 @@ export async function deletePortalFluxoCaixa(id: number, clienteId: number) {
   );
 }
 
+export async function deletePortalFluxoCaixaById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.delete(portalFluxoCaixa).where(eq(portalFluxoCaixa.id, id));
+}
+
+export async function updatePortalFluxoCaixa(id: number, data: {
+  tipo?: "entrada" | "saida";
+  descricao?: string;
+  categoria?: string | null;
+  valor?: string;
+  mes?: string;
+  ano?: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(portalFluxoCaixa).set(data).where(eq(portalFluxoCaixa.id, id));
+}
+
 export async function renamePastaDocumentos(clienteId: number, oldNome: string, newNome: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.update(documentos)
+  // Exact match
+  await db.update(documentos)
     .set({ pasta: newNome })
     .where(and(eq(documentos.clienteId, clienteId), eq(documentos.pasta, oldNome)));
+  // Prefix match for subpastas (ex: "Contratos/2024" → "NovoNome/2024")
+  const likePattern = oldNome + "/%";
+  await db.execute(
+    sql`UPDATE documentos SET pasta = CONCAT(${newNome}, SUBSTRING(pasta, ${oldNome.length + 1})) WHERE clienteId = ${clienteId} AND pasta LIKE ${likePattern}`
+  );
+}
+
+export async function renameDocumentoNome(id: number, nome: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.update(documentos).set({ nome }).where(eq(documentos.id, id));
 }
 
 // ===== SERVIÇOS PRESTADOS =====

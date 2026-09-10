@@ -207,4 +207,67 @@ export const portalAdminRouter = router({
       await db.updatePortalFluxoConfig(input.clienteId, input.mostrarMensalidades, input.mostrarServicos);
       return { success: true };
     }),
+
+  fluxoCaixaByCliente: protectedProcedure
+    .input(z.object({ clienteId: z.number() }))
+    .query(async ({ input }) => {
+      const [mensalidades, servicos, lancamentos] = await Promise.all([
+        db.getMensalidadesByCliente(input.clienteId),
+        db.getServicosPrestadosByCliente(input.clienteId),
+        db.getPortalFluxoCaixaByCliente(input.clienteId),
+      ]);
+      return { mensalidades, servicos, lancamentos };
+    }),
+
+  criarLancamento: protectedProcedure
+    .input(z.object({
+      clienteId: z.number(),
+      tipo: z.enum(["entrada", "saida"]),
+      descricao: z.string().min(1),
+      categoria: z.string().optional(),
+      valor: z.number().positive(),
+      mes: z.string().min(1),
+      ano: z.number().int().min(2000).max(2100),
+    }))
+    .mutation(async ({ input }) => {
+      await db.createPortalFluxoCaixa({
+        clienteId: input.clienteId,
+        tipo: input.tipo,
+        descricao: input.descricao,
+        categoria: input.categoria || undefined,
+        valor: input.valor.toFixed(2),
+        mes: input.mes,
+        ano: input.ano,
+      });
+      return { success: true };
+    }),
+
+  editarLancamento: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      tipo: z.enum(["entrada", "saida"]),
+      descricao: z.string().min(1),
+      categoria: z.string().optional(),
+      valor: z.number().positive(),
+      mes: z.string().min(1),
+      ano: z.number().int().min(2000).max(2100),
+    }))
+    .mutation(async ({ input }) => {
+      await db.updatePortalFluxoCaixa(input.id, {
+        tipo: input.tipo,
+        descricao: input.descricao,
+        categoria: input.categoria ?? null,
+        valor: input.valor.toFixed(2),
+        mes: input.mes,
+        ano: input.ano,
+      });
+      return { success: true };
+    }),
+
+  deletarLancamento: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.deletePortalFluxoCaixaById(input.id);
+      return { success: true };
+    }),
 });

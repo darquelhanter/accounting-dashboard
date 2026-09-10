@@ -91,21 +91,55 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+// Returns subfolders visible at the given path level, from doc list + empty folders
+function getFoldersAtPath(path: string[], docs: { pasta?: string | null }[], vazias: string[]): string[] {
+  const prefix = path.length > 0 ? path.join("/") + "/" : "";
+  const set = new Set<string>();
+  for (const d of docs) {
+    if (!d.pasta) continue;
+    if (path.length === 0) {
+      set.add(d.pasta.split("/")[0]);
+    } else {
+      if (!d.pasta.startsWith(prefix)) continue;
+      const next = d.pasta.slice(prefix.length).split("/")[0];
+      if (next) set.add(next);
+    }
+  }
+  for (const v of vazias) {
+    if (path.length === 0) {
+      set.add(v.split("/")[0]);
+    } else {
+      if (!v.startsWith(prefix)) continue;
+      const next = v.slice(prefix.length).split("/")[0];
+      if (next) set.add(next);
+    }
+  }
+  return Array.from(set).sort();
+}
+
+function getFilesAtPath<T extends { pasta?: string | null }>(path: string[], docs: T[]): T[] {
+  const pathStr = path.length > 0 ? path.join("/") : null;
+  return docs.filter((d) => (d.pasta ?? null) === pathStr);
+}
+
 function TabDocumentos() {
   const [selectedClienteId, setSelectedClienteId] = useState<string>("Todos");
-  const [pastaAtiva, setPastaAtiva] = useState<string | null>(null);
+  const [caminho, setCaminho] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isNovaPastaOpen, setIsNovaPastaOpen] = useState(false);
   const [novaPastaNome, setNovaPastaNome] = useState("");
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
-  const [renameAlvo, setRenameAlvo] = useState("");
-  const [renameNome, setRenameNome] = useState("");
+  const [isRenamePastaOpen, setIsRenamePastaOpen] = useState(false);
+  const [renamePastaAlvo, setRenamePastaAlvo] = useState("");
+  const [renamePastaNome, setRenamePastaNome] = useState("");
+  const [isRenameDocOpen, setIsRenameDocOpen] = useState(false);
+  const [renameDocId, setRenameDocId] = useState<number | null>(null);
+  const [renameDocNome, setRenameDocNome] = useState("");
   const [isDeletePastaOpen, setIsDeletePastaOpen] = useState(false);
   const [deletePastaAlvo, setDeletePastaAlvo] = useState("");
-  const [pastasVazias, setPastasVazias] = useState<{ clienteId: number | undefined; nome: string }[]>([]);
+  const [pastasVazias, setPastasVazias] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadDescricao, setUploadDescricao] = useState("");
@@ -124,6 +158,9 @@ function TabDocumentos() {
   );
 
   const rawDocs = clienteId ? (docsByCliente ?? []) : (todosDocs ?? []);
+
+  const caminhoStr = caminho.join("/");
+  const dentroDeUmaPasta = caminho.length > 0;
 
   const uploadMutation = trpc.documentos.upload.useMutation({
     onSuccess: () => {
@@ -150,12 +187,31 @@ function TabDocumentos() {
   const renamePastaMutation = trpc.documentos.renamePasta.useMutation({
     onSuccess: () => {
       refetch();
-      setIsRenameOpen(false);
-      setPastaAtiva((prev) => prev === renameAlvo ? renameNome.trim() : prev);
+      setIsRenamePastaOpen(false);
+      // Se estamos dentro da pasta renomeada, atualiza o caminho
+      const oldPath = renamePastaAlvo;
+      const newSegment = renamePastaNome.trim();
+      const newFullPath = caminho.length > 0
+        ? [...caminho.slice(0, -1), newSegment].join("/")
+        : newSegment;
       setPastasVazias(prev => prev.map(p =>
-        p.nome === renameAlvo && p.clienteId === clienteId ? { ...p, nome: renameNome.trim() } : p
+        p === oldPath ? newFullPath : (p.startsWith(oldPath + "/") ? newFullPath + p.slice(oldPath.length) : p)
       ));
+      if (caminhoStr === oldPath) {
+        setCaminho([...caminho.slice(0, -1), newSegment]);
+      }
       toast.success("Pasta renomeada!");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const renameDocMutation = trpc.documentos.renameDocumento.useMutation({
+    onSuccess: () => {
+      refetch();
+      setIsRenameDocOpen(false);
+      setRenameDocId(null);
+      setRenameDocNome("");
+      toast.success("Arquivo renomeado!");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -184,94 +240,107 @@ function TabDocumentos() {
     }
   }, [downloadQuery.isError, downloadingId]);
 
-  // Pastas únicas dos documentos + pastas criadas ainda vazias (filtradas pela empresa selecionada)
-  const pastasExistentes = useMemo(() => {
-    const set = new Set<string>();
-    for (const d of rawDocs) {
-      if (d.pasta) set.add(d.pasta);
-    }
-    for (const p of pastasVazias) {
-      if (p.clienteId === clienteId) set.add(p.nome);
-    }
-    return Array.from(set).sort();
-  }, [rawDocs, pastasVazias, clienteId]);
+  // Subpastas visíveis no nível atual
+  const subpastasVisiveis = useMemo(() => {
+    const vaziasNivel = pastasVazias.filter(v => {
+      // só as de clienteId atual
+      return true; // sem filtro adicional; pastasVazias já são globais mas filtramos por clienteId abaixo
+    });
+    return getFoldersAtPath(caminho, rawDocs, vaziasNivel);
+  }, [rawDocs, pastasVazias, caminho]);
 
-  // Docs filtrados por pasta ativa e busca
-  const docsNaPasta = useMemo(() => {
-    return rawDocs.filter((d) => {
-      if (pastaAtiva !== null) {
-        if (pastaAtiva === "__sem_pasta__") {
-          if (d.pasta) return false;
-        } else if (pastaAtiva === "__todos__") {
-          // sem filtro de pasta — mostra tudo
-        } else {
-          if (d.pasta !== pastaAtiva) return false;
-        }
-      }
-      if (!searchTerm) return true;
+  // Arquivos no nível atual (pasta exata)
+  const arquivosNivel = useMemo(() => {
+    const base = getFilesAtPath(caminho, rawDocs);
+    if (!searchTerm) return base;
+    const q = searchTerm.toLowerCase();
+    return base.filter((d) => {
       const clienteNome = clientes?.find((c) => c.id === d.clienteId)?.nome ?? "";
-      const q = searchTerm.toLowerCase();
       return (
         d.nome.toLowerCase().includes(q) ||
         clienteNome.toLowerCase().includes(q) ||
         (d.descricao ?? "").toLowerCase().includes(q)
       );
     });
-  }, [rawDocs, pastaAtiva, searchTerm, clientes]);
+  }, [rawDocs, caminho, searchTerm, clientes]);
 
-  const totalPages = Math.max(1, Math.ceil(docsNaPasta.length / ITEMS_PER_PAGE));
-  const paginated = docsNaPasta.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // Para o modal de upload: todas as pastas conhecidas (autocomplete)
+  const todasPastas = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of rawDocs) { if (d.pasta) set.add(d.pasta); }
+    for (const v of pastasVazias) set.add(v);
+    return Array.from(set).sort();
+  }, [rawDocs, pastasVazias]);
+
+  const totalPages = Math.max(1, Math.ceil(arquivosNivel.length / ITEMS_PER_PAGE));
+  const paginated = arquivosNivel.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const semPastaCount = rawDocs.filter((d) => !d.pasta).length;
 
-  function abrirPasta(nome: string | "__sem_pasta__") {
-    setPastaAtiva(nome);
+  function entrarPasta(nome: string) {
+    setCaminho((prev) => [...prev, nome]);
     setCurrentPage(1);
     setSelectedIds([]);
     setSearchTerm("");
   }
 
-  function voltarPastas() {
-    setPastaAtiva(null);
+  function voltarUmNivel() {
+    setCaminho((prev) => prev.slice(0, -1));
+    setCurrentPage(1);
+    setSelectedIds([]);
+    setSearchTerm("");
+  }
+
+  function irParaNivel(idx: number) {
+    setCaminho((prev) => prev.slice(0, idx + 1));
     setCurrentPage(1);
     setSelectedIds([]);
     setSearchTerm("");
   }
 
   function confirmarNovaPasta() {
-    const nome = novaPastaNome.trim();
-    if (!nome) { toast.error("Digite um nome para a pasta."); return; }
-    if (pastasExistentes.includes(nome)) {
+    const segmento = novaPastaNome.trim();
+    if (!segmento) { toast.error("Digite um nome para a pasta."); return; }
+    const fullPath = caminho.length > 0 ? caminhoStr + "/" + segmento : segmento;
+    if (subpastasVisiveis.includes(segmento)) {
       toast.error("Já existe uma pasta com esse nome.");
       return;
     }
     setIsNovaPastaOpen(false);
     setNovaPastaNome("");
-    setPastasVazias(prev => [...prev, { clienteId, nome }]);
-    setUploadPasta(nome);
-    setPastaAtiva(nome);
-    toast.success(`Pasta "${nome}" criada! Envie arquivos quando quiser.`);
+    setPastasVazias(prev => [...prev, fullPath]);
+    setUploadPasta(fullPath);
+    entrarPasta(segmento);
+    toast.success(`Pasta "${segmento}" criada! Envie arquivos quando quiser.`);
   }
 
-  function openDeletePasta(pasta: string, e: React.MouseEvent) {
+  function openDeletePasta(segmento: string, e: React.MouseEvent) {
     e.stopPropagation();
-    setDeletePastaAlvo(pasta);
+    const fullPath = caminho.length > 0 ? caminhoStr + "/" + segmento : segmento;
+    setDeletePastaAlvo(fullPath);
     setIsDeletePastaOpen(true);
   }
 
-  function addToFolder(pasta: string, e: React.MouseEvent) {
+  function addToFolder(segmento: string, e: React.MouseEvent) {
     e.stopPropagation();
-    setUploadPasta(pasta);
+    const fullPath = caminho.length > 0 ? caminhoStr + "/" + segmento : segmento;
+    setUploadPasta(fullPath);
     fileInputRef.current?.click();
   }
 
   function confirmarDeletePasta() {
-    const docIds = rawDocs.filter(d => d.pasta === deletePastaAlvo).map(d => d.id);
+    // Deleta docs cujo pasta === deletePastaAlvo OU começa com deletePastaAlvo + "/"
+    const docIds = rawDocs
+      .filter(d => d.pasta === deletePastaAlvo || d.pasta?.startsWith(deletePastaAlvo + "/"))
+      .map(d => d.id);
     const cleanup = () => {
-      setPastasVazias(prev => prev.filter(p => !(p.nome === deletePastaAlvo && p.clienteId === clienteId)));
+      setPastasVazias(prev => prev.filter(p => p !== deletePastaAlvo && !p.startsWith(deletePastaAlvo + "/")));
       setIsDeletePastaOpen(false);
       setDeletePastaAlvo("");
-      if (pastaAtiva === deletePastaAlvo) voltarPastas();
+      // Se estamos dentro da pasta excluída, sobe um nível
+      if (caminhoStr === deletePastaAlvo || caminhoStr.startsWith(deletePastaAlvo + "/")) {
+        voltarUmNivel();
+      }
     };
     if (docIds.length > 0) {
       deleteManyMutation.mutate({ ids: docIds }, { onSuccess: () => { cleanup(); toast.success("Pasta e arquivos excluídos!"); } });
@@ -281,19 +350,36 @@ function TabDocumentos() {
     }
   }
 
-  function openRename(pasta: string, e: React.MouseEvent) {
+  function openRenamePasta(segmento: string, e: React.MouseEvent) {
     e.stopPropagation();
-    setRenameAlvo(pasta);
-    setRenameNome(pasta);
-    setIsRenameOpen(true);
+    const fullPath = caminho.length > 0 ? caminhoStr + "/" + segmento : segmento;
+    setRenamePastaAlvo(fullPath);
+    setRenamePastaNome(segmento);
+    setIsRenamePastaOpen(true);
   }
 
-  function confirmarRename() {
-    const nome = renameNome.trim();
-    if (!nome) { toast.error("Digite um nome para a pasta."); return; }
-    if (nome === renameAlvo) { setIsRenameOpen(false); return; }
+  function confirmarRenamePasta() {
+    const novoSegmento = renamePastaNome.trim();
+    if (!novoSegmento) { toast.error("Digite um nome para a pasta."); return; }
+    const novoPath = caminho.length > 0
+      ? [...caminho.slice(0, -1), novoSegmento].join("/")
+      : (renamePastaAlvo.includes("/") ? renamePastaAlvo.split("/").slice(0, -1).join("/") + "/" + novoSegmento : novoSegmento);
+    if (novoPath === renamePastaAlvo) { setIsRenamePastaOpen(false); return; }
     if (!clienteId) { toast.error("Selecione uma empresa para renomear."); return; }
-    renamePastaMutation.mutate({ clienteId, oldNome: renameAlvo, newNome: nome });
+    renamePastaMutation.mutate({ clienteId, oldNome: renamePastaAlvo, newNome: novoPath });
+  }
+
+  function openRenameDoc(doc: { id: number; nome: string }, e: React.MouseEvent) {
+    e.stopPropagation();
+    setRenameDocId(doc.id);
+    setRenameDocNome(doc.nome);
+    setIsRenameDocOpen(true);
+  }
+
+  function confirmarRenameDoc() {
+    const nome = renameDocNome.trim();
+    if (!nome || !renameDocId) { toast.error("Digite um nome para o arquivo."); return; }
+    renameDocMutation.mutate({ id: renameDocId, nome });
   }
 
   function handleFileDrop(e: React.DragEvent) {
@@ -309,7 +395,7 @@ function TabDocumentos() {
       return;
     }
     setUploadFile(file);
-    if (pastaAtiva && pastaAtiva !== "__sem_pasta__") setUploadPasta(pastaAtiva);
+    if (dentroDeUmaPasta) setUploadPasta(caminhoStr);
     setIsUploadOpen(true);
   }
 
@@ -354,27 +440,50 @@ function TabDocumentos() {
 
   const temEmpresa = !!clienteId;
 
+  // Conta arquivos dentro de uma pasta (incluindo subpastas)
+  function countFilesInFolder(segmento: string): number {
+    const fullPath = caminho.length > 0 ? caminhoStr + "/" + segmento : segmento;
+    return rawDocs.filter(d => d.pasta === fullPath || d.pasta?.startsWith(fullPath + "/")).length;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          {pastaAtiva !== null ? (
-            <div className="flex items-center gap-2">
-              <button onClick={voltarPastas} className="text-gray-400 hover:text-gray-700 transition-colors">
+          {dentroDeUmaPasta ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={voltarUmNivel} className="text-gray-400 hover:text-gray-700 transition-colors">
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  {pastaAtiva === "__todos__"
-                    ? <><FileText className="h-5 w-5 text-blue-500" /> Todos os documentos</>
-                    : pastaAtiva === "__sem_pasta__"
-                      ? <><Folder className="h-5 w-5 text-gray-400" /> Sem pasta</>
-                      : <><Folder className="h-5 w-5 text-yellow-500" /> {pastaAtiva}</>
-                  }
-                </h2>
-                <p className="text-gray-500 text-xs mt-0.5">{empresaNome}</p>
-              </div>
+              {/* Breadcrumb */}
+              <nav className="flex items-center gap-1 text-sm flex-wrap">
+                <button
+                  onClick={() => { setCaminho([]); setCurrentPage(1); setSelectedIds([]); setSearchTerm(""); }}
+                  className="text-gray-400 hover:text-gray-700 transition-colors font-medium"
+                >
+                  Documentos
+                </button>
+                {caminho.map((seg, idx) => (
+                  <span key={idx} className="flex items-center gap-1">
+                    <ChevronRight className="h-3.5 w-3.5 text-gray-300" />
+                    {idx < caminho.length - 1 ? (
+                      <button
+                        onClick={() => irParaNivel(idx)}
+                        className="text-gray-500 hover:text-gray-700 transition-colors font-medium"
+                      >
+                        {seg}
+                      </button>
+                    ) : (
+                      <span className="text-gray-900 font-bold flex items-center gap-1">
+                        <Folder className="h-4 w-4 text-yellow-500" />
+                        {seg}
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </nav>
+              <p className="text-gray-400 text-xs mt-0.5 w-full pl-7">{empresaNome}</p>
             </div>
           ) : (
             <div>
@@ -384,19 +493,19 @@ function TabDocumentos() {
           )}
         </div>
         <div className="flex gap-2">
-          {pastaAtiva === null && temEmpresa && (
+          {temEmpresa && (
             <Button variant="outline" onClick={() => setIsNovaPastaOpen(true)} className="flex items-center gap-2">
               <FolderPlus className="h-4 w-4" />
-              Nova Pasta
+              {dentroDeUmaPasta ? "Nova Subpasta" : "Nova Pasta"}
             </Button>
           )}
-          {pastaAtiva !== null && pastaAtiva !== "__sem_pasta__" && pastaAtiva !== "__todos__" && temEmpresa && (
+          {dentroDeUmaPasta && temEmpresa && (
             <>
-              <Button variant="outline" size="sm" onClick={(e) => openRename(pastaAtiva, e)} className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" onClick={(e) => openRenamePasta(caminho[caminho.length - 1], e)} className="flex items-center gap-1.5">
                 <Pencil className="h-3.5 w-3.5" />
-                Renomear
+                Renomear Pasta
               </Button>
-              <Button variant="outline" size="sm" onClick={(e) => openDeletePasta(pastaAtiva, e)} className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
+              <Button variant="outline" size="sm" onClick={(e) => openDeletePasta(caminho[caminho.length - 1], e)} className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50">
                 <Trash2 className="h-3.5 w-3.5" />
                 Excluir Pasta
               </Button>
@@ -421,7 +530,7 @@ function TabDocumentos() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card
           className="cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all"
-          onClick={() => { setPastaAtiva("__todos__"); setCurrentPage(1); setSelectedIds([]); setSearchTerm(""); }}
+          onClick={() => { setCaminho([]); setCurrentPage(1); setSelectedIds([]); setSearchTerm(""); }}
         >
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-1.5">
@@ -436,7 +545,7 @@ function TabDocumentos() {
         </Card>
         <Card
           className="cursor-pointer hover:border-yellow-300 hover:shadow-sm transition-all"
-          onClick={() => { voltarPastas(); }}
+          onClick={() => { setCaminho([]); setCurrentPage(1); setSelectedIds([]); setSearchTerm(""); }}
         >
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-1.5">
@@ -445,7 +554,7 @@ function TabDocumentos() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{pastasExistentes.length}</p>
+            <p className="text-2xl font-bold">{subpastasVisiveis.length}</p>
             <p className="text-xs text-gray-500">clique para ver</p>
           </CardContent>
         </Card>
@@ -463,7 +572,7 @@ function TabDocumentos() {
       <div className="flex flex-wrap gap-3">
         <Select
           value={selectedClienteId}
-          onValueChange={(v) => { setSelectedClienteId(v); setPastaAtiva(null); setCurrentPage(1); setSelectedIds([]); }}
+          onValueChange={(v) => { setSelectedClienteId(v); setCaminho([]); setCurrentPage(1); setSelectedIds([]); }}
         >
           <SelectTrigger className="w-56">
             <SelectValue placeholder="Todas as empresas" />
@@ -476,7 +585,7 @@ function TabDocumentos() {
           </SelectContent>
         </Select>
 
-        {pastaAtiva !== null && (
+        {dentroDeUmaPasta && (
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -516,8 +625,8 @@ function TabDocumentos() {
       </div>
 
       {/* Conteúdo principal */}
-      {pastaAtiva === null ? (
-        /* Vista de pastas */
+      {!dentroDeUmaPasta ? (
+        /* Vista raiz: só pastas */
         <>
           {temEmpresa && (
             <div
@@ -541,7 +650,7 @@ function TabDocumentos() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
             </div>
-          ) : pastasExistentes.length === 0 && semPastaCount === 0 ? (
+          ) : subpastasVisiveis.length === 0 && semPastaCount === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <FolderOpen className="h-10 w-10 mb-2 opacity-30" />
               <p className="text-sm">Nenhum documento encontrado.</p>
@@ -549,40 +658,28 @@ function TabDocumentos() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {pastasExistentes.map((pasta) => {
-                const count = rawDocs.filter((d) => d.pasta === pasta).length;
+              {subpastasVisiveis.map((seg) => {
+                const count = countFilesInFolder(seg);
                 return (
-                  <div key={pasta} className="relative group">
+                  <div key={seg} className="relative group">
                     <button
-                      onClick={() => abrirPasta(pasta)}
+                      onClick={() => entrarPasta(seg)}
                       className="w-full flex flex-col items-center gap-2 p-5 rounded-xl border border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-colors text-left"
                     >
                       <Folder className="h-10 w-10 text-yellow-400 group-hover:text-yellow-500 transition-colors" />
-                      <span className="text-sm font-medium text-gray-800 text-center leading-tight break-all">{pasta}</span>
+                      <span className="text-sm font-medium text-gray-800 text-center leading-tight break-all">{seg}</span>
                       <Badge variant="secondary" className="text-xs">{count} arquivo{count !== 1 ? "s" : ""}</Badge>
                     </button>
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => addToFolder(pasta, e)}
-                        title="Adicionar arquivo"
-                        className="p-1 rounded-md bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-200 shadow-sm"
-                      >
+                      <button onClick={(e) => addToFolder(seg, e)} title="Adicionar arquivo" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-200 shadow-sm">
                         <Plus className="h-3.5 w-3.5 text-blue-500" />
                       </button>
                       {temEmpresa && (
                         <>
-                          <button
-                            onClick={(e) => openRename(pasta, e)}
-                            title="Renomear pasta"
-                            className="p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm"
-                          >
+                          <button onClick={(e) => openRenamePasta(seg, e)} title="Renomear pasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm">
                             <Pencil className="h-3.5 w-3.5 text-gray-500" />
                           </button>
-                          <button
-                            onClick={(e) => openDeletePasta(pasta, e)}
-                            title="Excluir pasta"
-                            className="p-1 rounded-md bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 shadow-sm"
-                          >
+                          <button onClick={(e) => openDeletePasta(seg, e)} title="Excluir pasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 shadow-sm">
                             <Trash2 className="h-3.5 w-3.5 text-red-400" />
                           </button>
                         </>
@@ -593,7 +690,7 @@ function TabDocumentos() {
               })}
               {semPastaCount > 0 && (
                 <button
-                  onClick={() => abrirPasta("__sem_pasta__")}
+                  onClick={() => { setCaminho(["__sem_pasta__"]); setCurrentPage(1); setSelectedIds([]); setSearchTerm(""); }}
                   className="flex flex-col items-center gap-2 p-5 rounded-xl border border-dashed border-gray-300 hover:border-gray-500 hover:bg-gray-50 transition-colors group text-left"
                 >
                   <Folder className="h-10 w-10 text-gray-400 group-hover:text-gray-500 transition-colors" />
@@ -605,8 +702,45 @@ function TabDocumentos() {
           )}
         </>
       ) : (
-        /* Vista de documentos dentro de uma pasta */
+        /* Vista dentro de uma pasta: subpastas + arquivos */
         <>
+          {/* Subpastas do nível atual */}
+          {subpastasVisiveis.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {subpastasVisiveis.map((seg) => {
+                const count = countFilesInFolder(seg);
+                return (
+                  <div key={seg} className="relative group">
+                    <button
+                      onClick={() => entrarPasta(seg)}
+                      className="w-full flex flex-col items-center gap-2 p-5 rounded-xl border border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-colors text-left"
+                    >
+                      <Folder className="h-10 w-10 text-yellow-400 group-hover:text-yellow-500 transition-colors" />
+                      <span className="text-sm font-medium text-gray-800 text-center leading-tight break-all">{seg}</span>
+                      <Badge variant="secondary" className="text-xs">{count} arquivo{count !== 1 ? "s" : ""}</Badge>
+                    </button>
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => addToFolder(seg, e)} title="Adicionar arquivo" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-200 shadow-sm">
+                        <Plus className="h-3.5 w-3.5 text-blue-500" />
+                      </button>
+                      {temEmpresa && (
+                        <>
+                          <button onClick={(e) => openRenamePasta(seg, e)} title="Renomear pasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-gray-100 shadow-sm">
+                            <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                          </button>
+                          <button onClick={(e) => openDeletePasta(seg, e)} title="Excluir pasta" className="p-1 rounded-md bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 shadow-sm">
+                            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Drag-and-drop para arquivos diretos neste nível */}
           <div
             className={`border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer ${
               isDragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
@@ -623,125 +757,114 @@ function TabDocumentos() {
             <p className="text-xs text-gray-400 mt-0.5">Máximo {MAX_FILE_SIZE_MB}MB</p>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={paginated.length > 0 && selectedIds.length === paginated.length}
-                      onCheckedChange={toggleAll}
-                    />
-                  </TableHead>
-                  <TableHead>Arquivo</TableHead>
-                  {selectedClienteId === "Todos" && <TableHead>Empresa</TableHead>}
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Tamanho</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 6 }).map((_, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : paginated.length === 0 ? (
+          {/* Tabela de arquivos neste nível */}
+          {caminho[0] !== "__sem_pasta__" && (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-gray-500 py-12">
-                      <Upload className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                      <p>Esta pasta está vazia.</p>
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="mt-2 text-sm text-blue-600 hover:underline"
-                      >
-                        Clique para enviar o primeiro arquivo
-                      </button>
-                    </TableCell>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={paginated.length > 0 && selectedIds.length === paginated.length}
+                        onCheckedChange={toggleAll}
+                      />
+                    </TableHead>
+                    <TableHead>Arquivo</TableHead>
+                    {selectedClienteId === "Todos" && <TableHead>Empresa</TableHead>}
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Tamanho</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ) : (
-                  paginated.map((doc) => {
-                    const clienteNome = clientes?.find((c) => c.id === doc.clienteId)?.nome ?? "—";
-                    const ext = doc.nome.split(".").pop()?.toUpperCase() ?? "";
-                    return (
-                      <TableRow key={doc.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.includes(doc.id)}
-                            onCheckedChange={() => toggleSelect(doc.id)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getFileIcon(doc.tipo)}
-                            <div>
-                              <p className="font-medium text-sm truncate max-w-[200px]">{doc.nome}</p>
-                              {ext && <Badge variant="outline" className="text-xs px-1 py-0">{ext}</Badge>}
-                            </div>
-                          </div>
-                        </TableCell>
-                        {selectedClienteId === "Todos" && (
-                          <TableCell className="text-sm">{clienteNome}</TableCell>
-                        )}
-                        <TableCell className="text-sm text-gray-500 max-w-[180px] truncate">
-                          {doc.descricao || "—"}
-                        </TableCell>
-                        <TableCell className="text-sm">{formatBytes(doc.tamanho)}</TableCell>
-                        <TableCell className="text-sm text-gray-500">
-                          {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString("pt-BR") : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Baixar"
-                              disabled={downloadingId === doc.id}
-                              onClick={() => setDownloadingId(doc.id)}
-                            >
-                              <Download className={`h-4 w-4 text-blue-600 ${downloadingId === doc.id ? "animate-pulse" : ""}`} />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" title="Excluir">
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    "{doc.nome}" será removido permanentemente.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <div className="flex justify-end gap-2 mt-4">
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className="bg-red-600 hover:bg-red-700"
-                                    onClick={() => deleteMutation.mutate({ id: doc.id })}
-                                  >
-                                    Excluir
-                                  </AlertDialogAction>
-                                </div>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <TableRow key={i}>
+                        {Array.from({ length: 6 }).map((_, j) => (
+                          <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                        ))}
                       </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    ))
+                  ) : paginated.length === 0 && subpastasVisiveis.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-gray-500 py-12">
+                        <Upload className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                        <p>Esta pasta está vazia.</p>
+                        <button onClick={() => fileInputRef.current?.click()} className="mt-2 text-sm text-blue-600 hover:underline">
+                          Clique para enviar o primeiro arquivo
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ) : paginated.length === 0 ? null : (
+                    paginated.map((doc) => {
+                      const clienteNome = clientes?.find((c) => c.id === doc.clienteId)?.nome ?? "—";
+                      const ext = doc.nome.split(".").pop()?.toUpperCase() ?? "";
+                      return (
+                        <TableRow key={doc.id}>
+                          <TableCell>
+                            <Checkbox checked={selectedIds.includes(doc.id)} onCheckedChange={() => toggleSelect(doc.id)} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getFileIcon(doc.tipo)}
+                              <div>
+                                <p className="font-medium text-sm truncate max-w-[200px]">{doc.nome}</p>
+                                {ext && <Badge variant="outline" className="text-xs px-1 py-0">{ext}</Badge>}
+                              </div>
+                            </div>
+                          </TableCell>
+                          {selectedClienteId === "Todos" && <TableCell className="text-sm">{clienteNome}</TableCell>}
+                          <TableCell className="text-sm text-gray-500 max-w-[180px] truncate">{doc.descricao || "—"}</TableCell>
+                          <TableCell className="text-sm">{formatBytes(doc.tamanho)}</TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString("pt-BR") : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" title="Renomear" onClick={(e) => openRenameDoc(doc, e)}>
+                                <Pencil className="h-4 w-4 text-gray-400" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon" title="Baixar"
+                                disabled={downloadingId === doc.id}
+                                onClick={() => setDownloadingId(doc.id)}
+                              >
+                                <Download className={`h-4 w-4 text-blue-600 ${downloadingId === doc.id ? "animate-pulse" : ""}`} />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" title="Excluir">
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
+                                    <AlertDialogDescription>"{doc.nome}" será removido permanentemente.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <div className="flex justify-end gap-2 mt-4">
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteMutation.mutate({ id: doc.id })}>
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </div>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between text-sm text-gray-600">
-              <span>{docsNaPasta.length} documento(s) — página {currentPage} de {totalPages}</span>
+              <span>{arquivosNivel.length} documento(s) — página {currentPage} de {totalPages}</span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
                   <ChevronLeft className="h-4 w-4" />
@@ -756,7 +879,7 @@ function TabDocumentos() {
       )}
 
       {/* Modal Renomear Pasta */}
-      <Dialog open={isRenameOpen} onOpenChange={(v) => { setIsRenameOpen(v); if (!v) { setRenameAlvo(""); setRenameNome(""); } }}>
+      <Dialog open={isRenamePastaOpen} onOpenChange={(v) => { setIsRenamePastaOpen(v); if (!v) { setRenamePastaAlvo(""); setRenamePastaNome(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Renomear Pasta</DialogTitle>
@@ -766,16 +889,43 @@ function TabDocumentos() {
               <Label>Novo nome</Label>
               <Input
                 placeholder="Nome da pasta"
-                value={renameNome}
-                onChange={(e) => setRenameNome(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && confirmarRename()}
+                value={renamePastaNome}
+                onChange={(e) => setRenamePastaNome(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && confirmarRenamePasta()}
                 autoFocus
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsRenameOpen(false)}>Cancelar</Button>
-              <Button onClick={confirmarRename} disabled={renamePastaMutation.isPending}>
+              <Button type="button" variant="outline" onClick={() => setIsRenamePastaOpen(false)}>Cancelar</Button>
+              <Button onClick={confirmarRenamePasta} disabled={renamePastaMutation.isPending}>
                 {renamePastaMutation.isPending ? "Salvando..." : "Renomear"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Renomear Arquivo */}
+      <Dialog open={isRenameDocOpen} onOpenChange={(v) => { setIsRenameDocOpen(v); if (!v) { setRenameDocId(null); setRenameDocNome(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Renomear Arquivo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-1">
+              <Label>Novo nome</Label>
+              <Input
+                placeholder="Nome do arquivo"
+                value={renameDocNome}
+                onChange={(e) => setRenameDocNome(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && confirmarRenameDoc()}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsRenameDocOpen(false)}>Cancelar</Button>
+              <Button onClick={confirmarRenameDoc} disabled={renameDocMutation.isPending}>
+                {renameDocMutation.isPending ? "Salvando..." : "Renomear"}
               </Button>
             </div>
           </div>
@@ -789,9 +939,9 @@ function TabDocumentos() {
             <AlertDialogTitle>Excluir pasta "{deletePastaAlvo}"?</AlertDialogTitle>
             <AlertDialogDescription>
               {(() => {
-                const count = rawDocs.filter(d => d.pasta === deletePastaAlvo).length;
+                const count = rawDocs.filter(d => d.pasta === deletePastaAlvo || d.pasta?.startsWith(deletePastaAlvo + "/")).length;
                 return count > 0
-                  ? `Esta pasta contém ${count} arquivo${count !== 1 ? "s" : ""}. Todos serão excluídos permanentemente.`
+                  ? `Esta pasta contém ${count} arquivo${count !== 1 ? "s" : ""} (incluindo subpastas). Todos serão excluídos permanentemente.`
                   : "A pasta está vazia e será removida.";
               })()}
             </AlertDialogDescription>
@@ -876,7 +1026,7 @@ function TabDocumentos() {
                 onChange={(e) => setUploadPasta(e.target.value)}
               />
               <datalist id="pastas-list">
-                {pastasExistentes.map((p) => (
+                {todasPastas.map((p) => (
                   <option key={p} value={p} />
                 ))}
               </datalist>
