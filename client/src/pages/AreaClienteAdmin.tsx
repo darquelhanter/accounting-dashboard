@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -42,6 +43,7 @@ import {
   FileText,
   Download,
   Loader2,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -400,13 +402,43 @@ function LancRow({ item, onEdit, onDelete }: {
 }
 
 // ─────────────────── Tab Documentos ───────────────────
+const MAX_FILE_SIZE_MB = 30;
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function TabDocumentos({ clienteId }: { clienteId: number }) {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [renameDocId, setRenameDocId] = useState<number | null>(null);
+  const [renameDocNome, setRenameDocNome] = useState("");
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadPasta, setUploadPasta] = useState("");
+  const [uploadDescricao, setUploadDescricao] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: docs = [], isLoading, refetch } = trpc.documentos.listByCliente.useQuery({ clienteId });
 
   const deleteMutation = trpc.documentos.delete.useMutation({
     onSuccess: () => { refetch(); toast.success("Documento excluído!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const renameMutation = trpc.documentos.renameDocumento.useMutation({
+    onSuccess: () => { refetch(); setIsRenameOpen(false); toast.success("Arquivo renomeado!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const uploadMutation = trpc.documentos.upload.useMutation({
+    onSuccess: () => { refetch(); setIsUploadOpen(false); setUploadFile(null); setUploadDescricao(""); setUploadPasta(""); toast.success("Documento enviado!"); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -427,21 +459,43 @@ function TabDocumentos({ clienteId }: { clienteId: number }) {
     }
   }, [downloadQuery.data, downloadingId]);
 
-  if (isLoading) return <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>;
-
-  const totalDocs = (docs as any[]).length;
-
-  if (totalDocs === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-        <FileText className="h-10 w-10 mb-3 opacity-30" />
-        <p className="text-sm">Nenhum documento para esta empresa.</p>
-        <p className="text-xs mt-1">Gerencie documentos na seção <strong>Documentos & Acessos</strong>.</p>
-      </div>
-    );
+  function pickFile(file: File) {
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      toast.error(`Arquivo muito grande. Máximo: ${MAX_FILE_SIZE_MB}MB`);
+      return;
+    }
+    setUploadFile(file);
+    setIsUploadOpen(true);
   }
 
-  // Agrupa por pasta
+  async function handleUpload(e: React.FormEvent) {
+    e.preventDefault();
+    if (!uploadFile) return;
+    setUploading(true);
+    try {
+      const conteudo = await fileToBase64(uploadFile);
+      await uploadMutation.mutateAsync({
+        clienteId,
+        pasta: uploadPasta.trim() || undefined,
+        nome: uploadFile.name,
+        descricao: uploadDescricao || undefined,
+        tipo: uploadFile.type || "application/octet-stream",
+        tamanho: uploadFile.size,
+        conteudo,
+      });
+    } catch {
+      toast.error("Erro ao enviar arquivo.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const todasPastas = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of docs as any[]) { if (d.pasta) set.add(d.pasta); }
+    return Array.from(set).sort();
+  }, [docs]);
+
   const porPasta = useMemo(() => {
     const map = new Map<string, any[]>();
     for (const d of docs as any[]) {
@@ -453,49 +507,152 @@ function TabDocumentos({ clienteId }: { clienteId: number }) {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [docs]);
 
+  if (isLoading) return <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>;
+
+  const totalDocs = (docs as any[]).length;
+
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">{totalDocs} documento{totalDocs !== 1 ? "s" : ""} — somente leitura aqui. Para upload/renomear use <strong>Documentos & Acessos</strong>.</p>
-      {porPasta.map(([pasta, items]) => (
-        <div key={pasta}>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-            <FolderOpen className="h-3.5 w-3.5" />
-            {pasta}
-          </h3>
-          <div className="space-y-1.5">
-            {items.map((doc: any) => (
-              <div key={doc.id} className="flex items-center gap-3 p-3 bg-white rounded-lg border hover:shadow-sm transition-shadow">
-                <FileText className="h-4 w-4 text-gray-400 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{doc.nome}</p>
-                  <p className="text-xs text-gray-500">{formatBytes(doc.tamanho)} · {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString("pt-BR") : "—"}</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => setDownloadingId(doc.id)} disabled={downloadingId === doc.id} className="shrink-0 gap-1.5">
-                  {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                  Baixar
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
-                      <AlertDialogDescription>"{doc.nome}" será removido permanentemente.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="flex justify-end gap-2 mt-4">
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteMutation.mutate({ id: doc.id })}>Excluir</AlertDialogAction>
-                    </div>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            ))}
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-sm text-gray-500">{totalDocs} documento{totalDocs !== 1 ? "s" : ""}</p>
+        <Button size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5">
+          <Upload className="h-4 w-4" />
+          Enviar Documento
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && pickFile(e.target.files[0])}
+        />
+      </div>
+
+      {totalDocs === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+          <FileText className="h-10 w-10 mb-3 opacity-30" />
+          <p className="text-sm">Nenhum documento para esta empresa.</p>
+          <button onClick={() => fileInputRef.current?.click()} className="mt-2 text-sm text-blue-600 hover:underline">
+            Clique para enviar o primeiro
+          </button>
         </div>
-      ))}
+      ) : (
+        porPasta.map(([pasta, items]) => (
+          <div key={pasta}>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <FolderOpen className="h-3.5 w-3.5" />
+              {pasta}
+            </h3>
+            <div className="space-y-1.5">
+              {items.map((doc: any) => (
+                <div key={doc.id} className="flex items-center gap-2 p-3 bg-white rounded-lg border hover:shadow-sm transition-shadow">
+                  <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{doc.nome}</p>
+                    <p className="text-xs text-gray-500">{formatBytes(doc.tamanho)} · {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString("pt-BR") : "—"}</p>
+                  </div>
+                  {/* Renomear */}
+                  <Button variant="ghost" size="icon" title="Renomear" onClick={() => { setRenameDocId(doc.id); setRenameDocNome(doc.nome); setIsRenameOpen(true); }}>
+                    <Pencil className="h-4 w-4 text-gray-400" />
+                  </Button>
+                  {/* Download */}
+                  <Button variant="outline" size="sm" onClick={() => setDownloadingId(doc.id)} disabled={downloadingId === doc.id} className="shrink-0 gap-1.5">
+                    {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    Baixar
+                  </Button>
+                  {/* Excluir */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
+                        <AlertDialogDescription>"{doc.nome}" será removido permanentemente.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="flex justify-end gap-2 mt-4">
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteMutation.mutate({ id: doc.id })}>Excluir</AlertDialogAction>
+                      </div>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+
+      {/* Modal Renomear */}
+      <Dialog open={isRenameOpen} onOpenChange={(v) => { setIsRenameOpen(v); if (!v) { setRenameDocId(null); setRenameDocNome(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Renomear Arquivo</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-1">
+              <Label>Novo nome</Label>
+              <Input
+                value={renameDocNome}
+                onChange={(e) => setRenameDocNome(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && renameDocId && renameMutation.mutate({ id: renameDocId, nome: renameDocNome.trim() })}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsRenameOpen(false)}>Cancelar</Button>
+              <Button onClick={() => renameDocId && renameMutation.mutate({ id: renameDocId, nome: renameDocNome.trim() })} disabled={renameMutation.isPending}>
+                {renameMutation.isPending ? "Salvando..." : "Renomear"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Upload */}
+      <Dialog open={isUploadOpen} onOpenChange={(v) => { setIsUploadOpen(v); if (!v) { setUploadFile(null); setUploadDescricao(""); setUploadPasta(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Enviar Documento</DialogTitle></DialogHeader>
+          <form onSubmit={handleUpload} className="space-y-4 mt-2">
+            {uploadFile && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{uploadFile.name}</p>
+                  <p className="text-xs text-gray-500">{formatBytes(uploadFile.size)}</p>
+                </div>
+              </div>
+            )}
+            <div className="space-y-1">
+              <Label>Pasta <span className="text-gray-400 font-normal">(opcional)</span></Label>
+              <Input
+                list="pastas-list-admin"
+                placeholder="Ex: Contratos, Notas Fiscais..."
+                value={uploadPasta}
+                onChange={(e) => setUploadPasta(e.target.value)}
+              />
+              <datalist id="pastas-list-admin">
+                {todasPastas.map((p) => <option key={p} value={p} />)}
+              </datalist>
+            </div>
+            <div className="space-y-1">
+              <Label>Descrição <span className="text-gray-400 font-normal">(opcional)</span></Label>
+              <Textarea
+                placeholder="Ex: Contrato social, Balanço 2024..."
+                value={uploadDescricao}
+                onChange={(e) => setUploadDescricao(e.target.value)}
+                rows={2}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" onClick={() => { setIsUploadOpen(false); setUploadFile(null); }}>Cancelar</Button>
+              <Button type="submit" disabled={uploading || !uploadFile}>
+                {uploading ? "Enviando..." : "Enviar"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
