@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis, socios, portalClientes, portalFluxoCaixa } from "../drizzle/schema";
+import { InsertUser, users, clientes, obrigacoes, checklistObrigacoes, controleMensalidades, notificacaoConfigs, clientePermissions, auditLog, clientesBackup, syncLog, servicosPrestados, documentos, acessosEmpresas, responsaveis, socios, portalClientes, portalFluxoCaixa, pastaDescricoes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { eq, and, inArray, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1611,4 +1611,38 @@ export async function verifyPortalClientePassword(cnpj: string, password: string
   const isValid = await bcrypt.compare(password, portal.passwordHash);
   if (!isValid) return null;
   return portal;
+}
+
+// ===== DESCRIÇÕES DE PASTAS =====
+
+export async function getPastasDescricoes(clienteId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pastaDescricoes).where(eq(pastaDescricoes.clienteId, clienteId));
+}
+
+export async function upsertPastaDescricao(clienteId: number, path: string, descricao: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.execute(
+    sql`INSERT INTO pasta_descricoes (cliente_id, path, descricao)
+        VALUES (${clienteId}, ${path}, ${descricao})
+        ON DUPLICATE KEY UPDATE descricao = ${descricao}`
+  );
+}
+
+export async function deletePastaDescricao(clienteId: number, path: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(pastaDescricoes)
+    .where(and(eq(pastaDescricoes.clienteId, clienteId), eq(pastaDescricoes.path, path)));
+}
+
+export async function deletePastaDescricoesByPrefix(clienteId: number, pathPrefix: string) {
+  const db = await getDb();
+  if (!db) return;
+  const likePattern = pathPrefix + "/%";
+  await db.execute(
+    sql`DELETE FROM pasta_descricoes WHERE cliente_id = ${clienteId} AND (path = ${pathPrefix} OR path LIKE ${likePattern})`
+  );
 }

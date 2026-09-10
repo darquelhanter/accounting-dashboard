@@ -8,6 +8,10 @@ import {
   deleteDocumento,
   renamePastaDocumentos,
   renameDocumentoNome,
+  getPastasDescricoes,
+  upsertPastaDescricao,
+  deletePastaDescricao,
+  deletePastaDescricoesByPrefix,
 } from "../db";
 
 export const documentosRouter = router({
@@ -80,5 +84,33 @@ export const documentosRouter = router({
     .input(z.object({ id: z.number(), nome: z.string().min(1) }))
     .mutation(async ({ input }) => {
       return renameDocumentoNome(input.id, input.nome);
+    }),
+
+  getPastasDescricoes: protectedProcedure
+    .input(z.object({ clienteId: z.number() }))
+    .query(async ({ input }) => {
+      return getPastasDescricoes(input.clienteId);
+    }),
+
+  upsertPastaDescricao: protectedProcedure
+    .input(z.object({
+      clienteId: z.number(),
+      path: z.string().min(1),
+      descricao: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      if (input.descricao.trim()) {
+        await upsertPastaDescricao(input.clienteId, input.path, input.descricao.trim());
+      } else {
+        await deletePastaDescricao(input.clienteId, input.path);
+      }
+      return { success: true };
+    }),
+
+  deletePastaDescricao: protectedProcedure
+    .input(z.object({ clienteId: z.number(), path: z.string() }))
+    .mutation(async ({ input }) => {
+      await deletePastaDescricoesByPrefix(input.clienteId, input.path);
+      return { success: true };
     }),
 });

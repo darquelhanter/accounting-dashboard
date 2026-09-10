@@ -307,3 +307,11 @@ export const portalFluxoCaixa = mysqlTable("portal_fluxo_caixa", {
 
 export type PortalFluxoCaixa = typeof portalFluxoCaixa.$inferSelect;
 export type InsertPortalFluxoCaixa = typeof portalFluxoCaixa.$inferInsert;
+
+export const pastaDescricoes = mysqlTable("pasta_descricoes", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteId: int("cliente_id").notNull(),
+  path: varchar("path", { length: 500 }).notNull(),
+  descricao: text("descricao"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
