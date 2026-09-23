@@ -425,8 +425,9 @@ export default function Documentos() {
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="icon-lg"
                           title="Baixar"
+                          aria-label={`Baixar ${doc.nome}`}
                           disabled={downloadingId === doc.id}
                           onClick={() => setDownloadingId(doc.id)}
                         >
@@ -434,7 +435,7 @@ export default function Documentos() {
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" title="Excluir">
+                            <Button variant="ghost" size="icon-lg" title="Excluir" aria-label={`Excluir ${doc.nome}`}>
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           </AlertDialogTrigger>

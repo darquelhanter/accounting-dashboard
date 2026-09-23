@@ -302,12 +302,12 @@ export default function Acessos() {
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(acesso)} title="Editar">
+                          <Button variant="ghost" size="icon-lg" onClick={() => openEdit(acesso)} title="Editar" aria-label="Editar acesso">
                             <Edit2 className="h-4 w-4 text-muted-foreground" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" title="Excluir">
+                              <Button variant="ghost" size="icon-lg" title="Excluir" aria-label="Excluir acesso">
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
                             </AlertDialogTrigger>

@@ -96,9 +96,9 @@ export default function Dashboard() {
   };
 
   const defaultStatusRecebimento = [
-    { name: "Pago", value: 4, fill: "#10b981" },
-    { name: "Pendente", value: 2, fill: "#f59e0b" },
-    { name: "Atrasado", value: 0, fill: "#ef4444" }
+    { name: "Pago", value: 4, fill: "var(--status-success)" },
+    { name: "Pendente", value: 2, fill: "var(--status-warning)" },
+    { name: "Atrasado", value: 0, fill: "var(--status-danger)" }
   ];
 
   const defaultEvolucaoReceita = [
@@ -111,10 +111,10 @@ export default function Dashboard() {
   ];
 
   const defaultStatusObrigacoes = [
-    { status: "Feito", quantidade: 12, fill: "#10b981" },
-    { status: "Pendente", quantidade: 5, fill: "#f59e0b" },
-    { status: "Em Progresso", quantidade: 2, fill: "#3b82f6" },
-    { status: "Bloqueado", quantidade: 1, fill: "#ef4444" }
+    { status: "Feito", quantidade: 12, fill: "var(--status-success)" },
+    { status: "Pendente", quantidade: 5, fill: "var(--status-warning)" },
+    { status: "Em Progresso", quantidade: 2, fill: "var(--status-info)" },
+    { status: "Bloqueado", quantidade: 1, fill: "var(--status-danger)" }
   ];
 
   const defaultDadosSetor = [
@@ -181,10 +181,10 @@ export default function Dashboard() {
     });
 
     return [
-      { status: "Feito", quantidade: feito, fill: "#10b981" },
-      { status: "Pendente", quantidade: pendente, fill: "#f59e0b" },
-      { status: "Em Progresso", quantidade: emProgresso, fill: "#3b82f6" },
-      { status: "Bloqueado", quantidade: bloqueado, fill: "#ef4444" }
+      { status: "Feito", quantidade: feito, fill: "var(--status-success)" },
+      { status: "Pendente", quantidade: pendente, fill: "var(--status-warning)" },
+      { status: "Em Progresso", quantidade: emProgresso, fill: "var(--status-info)" },
+      { status: "Bloqueado", quantidade: bloqueado, fill: "var(--status-danger)" }
     ];
   };
 
@@ -319,7 +319,7 @@ export default function Dashboard() {
                     labelLine={false}
                     label={({ name, value }) => `${name}: ${value}`}
                     outerRadius={100}
-                    fill="#8884d8"
+                    fill="var(--status-info)"
                     dataKey="value"
                   >
                     {(filteredData ? filteredStats.statusRecebimento : defaultStatusRecebimento).map((entry, index) => (
@@ -340,15 +340,15 @@ export default function Dashboard() {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={defaultEvolucaoReceita}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="mes" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: "#1e293b", border: "none", borderRadius: "8px", color: "#fff" }}
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="mes" stroke="var(--chart-axis)" />
+                  <YAxis stroke="var(--chart-axis)" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "var(--chart-tooltip-bg)", border: "none", borderRadius: "8px", color: "var(--chart-tooltip-fg)" }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="recebido" stroke="#10b981" strokeWidth={2} name="Recebido" />
-                  <Line type="monotone" dataKey="previsto" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" name="Previsto" />
+                  <Line type="monotone" dataKey="recebido" stroke="var(--status-success)" strokeWidth={2} name="Recebido" />
+                  <Line type="monotone" dataKey="previsto" stroke="var(--status-neutral)" strokeWidth={2} strokeDasharray="5 5" name="Previsto" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -365,13 +365,13 @@ export default function Dashboard() {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={statusObrigacoes}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="status" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: "#1e293b", border: "none", borderRadius: "8px", color: "#fff" }}
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="status" stroke="var(--chart-axis)" />
+                  <YAxis stroke="var(--chart-axis)" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "var(--chart-tooltip-bg)", border: "none", borderRadius: "8px", color: "var(--chart-tooltip-fg)" }}
                   />
-                  <Bar dataKey="quantidade" fill="#3b82f6" radius={[8, 8, 0, 0]}>
+                  <Bar dataKey="quantidade" fill="var(--status-info)" radius={[8, 8, 0, 0]}>
                     {statusObrigacoes.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
@@ -389,15 +389,15 @@ export default function Dashboard() {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={defaultDadosSetor}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="setor" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: "#1e293b", border: "none", borderRadius: "8px", color: "#fff" }}
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="setor" stroke="var(--chart-axis)" />
+                  <YAxis stroke="var(--chart-axis)" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "var(--chart-tooltip-bg)", border: "none", borderRadius: "8px", color: "var(--chart-tooltip-fg)" }}
                   />
                   <Legend />
-                  <Bar dataKey="clientes" fill="#8b5cf6" radius={[8, 8, 0, 0]} name="Clientes" />
-                  <Bar dataKey="obrigacoes" fill="#06b6d4" radius={[8, 8, 0, 0]} name="Obrigações" />
+                  <Bar dataKey="clientes" fill="var(--chart-2)" radius={[8, 8, 0, 0]} name="Clientes" />
+                  <Bar dataKey="obrigacoes" fill="var(--chart-4)" radius={[8, 8, 0, 0]} name="Obrigações" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

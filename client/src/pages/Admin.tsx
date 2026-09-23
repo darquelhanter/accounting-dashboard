@@ -144,7 +144,7 @@ export default function Admin() {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-slate-600 text-sm">Checklist Items</p>
-                <p className="text-3xl font-bold text-purple-600">{estatisticasData?.estatisticas.totalChecklistItems || 0}</p>
+                <p className="text-3xl font-bold text-teal-600">{estatisticasData?.estatisticas.totalChecklistItems || 0}</p>
               </div>
             </CardContent>
           </Card>

@@ -445,8 +445,9 @@ export default function ServicosPrestados() {
                         {servico.status !== "Pago" && (
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="icon-lg"
                             title="Marcar como pago"
+                            aria-label={`Marcar ${servico.nomeServico} como pago`}
                             onClick={() => markAsPaidMutation.mutate({ id: servico.id })}
                           >
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -454,15 +455,16 @@ export default function ServicosPrestados() {
                         )}
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="icon-lg"
                           title="Editar"
+                          aria-label={`Editar ${servico.nomeServico}`}
                           onClick={() => openEdit(servico)}
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" title="Excluir">
+                            <Button variant="ghost" size="icon-lg" title="Excluir" aria-label={`Excluir ${servico.nomeServico}`}>
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           </AlertDialogTrigger>

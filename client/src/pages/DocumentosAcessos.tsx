@@ -1018,17 +1018,17 @@ function TabDocumentos() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="icon" title="Visualizar" onClick={() => setPreviewDoc({ id: doc.id, nome: doc.nome, tipo: doc.tipo })}>
+                              <Button variant="ghost" size="icon-lg" title="Visualizar" aria-label={`Visualizar ${doc.nome}`} onClick={() => setPreviewDoc({ id: doc.id, nome: doc.nome, tipo: doc.tipo })}>
                                 <Eye className="h-4 w-4 text-gray-500" />
                               </Button>
-                              <Button variant="ghost" size="icon" title="Editar (nome e descrição)" onClick={(e) => openRenameDoc(doc, e)}>
+                              <Button variant="ghost" size="icon-lg" title="Editar (nome e descrição)" aria-label={`Editar nome e descrição de ${doc.nome}`} onClick={(e) => openRenameDoc(doc, e)}>
                                 <Pencil className="h-4 w-4 text-gray-400" />
                               </Button>
-                              <Button variant="ghost" size="icon" title="Mover" onClick={(e) => openMoveDoc(doc, e)}>
+                              <Button variant="ghost" size="icon-lg" title="Mover" aria-label={`Mover ${doc.nome}`} onClick={(e) => openMoveDoc(doc, e)}>
                                 <FolderSymlink className="h-4 w-4 text-indigo-500" />
                               </Button>
                               <Button
-                                variant="ghost" size="icon" title="Baixar"
+                                variant="ghost" size="icon-lg" title="Baixar" aria-label={`Baixar ${doc.nome}`}
                                 disabled={downloadingId === doc.id}
                                 onClick={() => setDownloadingId(doc.id)}
                               >
@@ -1036,7 +1036,7 @@ function TabDocumentos() {
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" title="Excluir">
+                                  <Button variant="ghost" size="icon-lg" title="Excluir" aria-label={`Excluir ${doc.nome}`}>
                                     <Trash2 className="h-4 w-4 text-red-500" />
                                   </Button>
                                 </AlertDialogTrigger>
@@ -1594,12 +1594,12 @@ function TabAcessos() {
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(acesso)} title="Editar">
+                          <Button variant="ghost" size="icon-lg" onClick={() => openEdit(acesso)} title="Editar" aria-label="Editar acesso">
                             <Edit2 className="h-4 w-4 text-muted-foreground" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" title="Excluir">
+                              <Button variant="ghost" size="icon-lg" title="Excluir" aria-label="Excluir acesso">
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
                             </AlertDialogTrigger>
