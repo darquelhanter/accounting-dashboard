@@ -234,3 +234,73 @@
 - [x] Implementar recuperação de dados do backup
 - [x] Adicionar testes unitários
 - [x] Testar e validar funcionalidade completa
+
+## Fase 24: Fluxo de Caixa e Permissões Multi-Empresa (CONCLUÍDA)
+- [x] Módulo de Fluxo de Caixa — consolidado de mensalidades e serviços prestados
+- [x] Permissões — selecionar múltiplas empresas para um usuário
+- [x] Substituir "Importar Excel" por "Serviços Prestados"
+- [x] Filtro de mês no fluxo de caixa e campo categoria nos lançamentos
+- [x] Toggles para incluir mensalidades e serviços no fluxo de caixa (lado admin)
+
+## Fase 25: Módulo de Documentos (CONCLUÍDA)
+- [x] Upload, armazenamento e download de documentos por empresa
+- [x] Corrigir download (useEffect no lugar de onSuccess — TanStack Query v5)
+- [x] Criar pasta sem upload obrigatório + excluir pasta
+- [x] Upload de arquivos em pastas sem empresa selecionada
+- [x] Corrigir pastas vazias vinculadas à empresa errada
+- [x] Cards de KPI clicáveis (total abre lista geral, pastas volta à grade)
+- [x] Renomear pasta + exibir documentos em "Todas as Empresas"
+- [x] Subpastas a partir dos cards + descrição nas pastas
+- [x] Mover pastas entre pastas ou para a raiz
+- [x] Mover arquivo entre pastas e visualizar sem baixar
+- [x] Editar descrição do arquivo depois do upload
+
+## Fase 26: Módulo de Acessos das Empresas (CONCLUÍDA)
+- [x] Cadastro de senhas, e-mails e telefones dos portais das empresas (e-CAC, SEFAZ, bancos etc.)
+- [x] Renomear "Cliente" → "Empresa" na UI + notas livres nos Acessos
+- [x] Unificar Documentos e Acessos + pastas de arquivos
+- [ ] **PENDENTE: criptografar `acessos_empresas.senha` e `observacao`** (hoje em texto puro no MySQL — ver seção "Segurança" no fim do arquivo)
+
+## Fase 27: Cadastro de Cliente/Empresa — Fluxo Completo (CONCLUÍDA)
+- [x] Seleção de obrigações ao cadastrar cliente
+- [x] Seleção de meses de mensalidade ao cadastrar cliente (passo 3)
+- [x] Não duplicar itens de checklist/mensalidades ao criar cliente com meses já existentes
+- [x] Remover campos de hora do checklist e criar mensalidades automaticamente ao cadastrar cliente
+- [x] Busca de CNPJ na Receita Federal ao cadastrar empresa
+- [x] Módulo de Sócios das Empresas — cadastro no fluxo de criação e gestão na edição
+- [x] Responsáveis contábeis + e-mail/telefone da empresa + filtro no Fluxo de Caixa
+
+## Fase 28: Visão de Administrador e Correções de KPI (CONCLUÍDA)
+- [x] Admin vê dados de todas as empresas do sistema (obrigações, checklist, mensalidades, alertas)
+- [x] Corrigir visibilidade de obrigações/checklist/mensalidades para usuários compartilhados (permissões)
+- [x] Corrigir KPIs da Home (obrigações, mensalidades, taxa de conclusão)
+- [x] Mostrar nome da empresa nos alertas e tornar KPI cards navegáveis
+- [x] Auto-aprovar owner como admin via variável `OWNER_EMAIL` no startup
+
+## Fase 29: Portal do Cliente (CONCLUÍDA)
+- [x] `/login` vira portal do cliente (login por CNPJ) + `/admin/login` para equipe interna
+- [x] Criação de pastas, upload/download/exclusão de documentos pelo próprio cliente
+- [x] Fluxo de caixa por mês com criação de entradas e saídas (+ filtro de mês)
+- [x] "Lembrar de mim" no login admin
+- [x] Reload completo após login para evitar cache stale do `auth.me`
+- [x] Área do Cliente (visão admin): subpastas, renomear e upload de arquivos
+
+## Fase 30: Redesenho Visual do Dashboard (CONCLUÍDA)
+- [x] Redesenhar dashboard com layout moderno e acesso rápido expandido
+- [x] Renomear título do dashboard para "Contabilidade"
+
+## Fase 31: Deploy em Produção — Railway (CONCLUÍDA)
+Série de correções para colocar e manter a aplicação no ar em `accounting-dashboard.up.railway.app` (ver [[deploy_railway]] na memória para detalhes técnicos):
+- [x] Corrigir build command, cache e Node.js (v20 → v22)
+- [x] Rodar migrações do banco no build/start do Railway (script programático, contornando bug de DNS do drizzle-kit)
+- [x] `MYSQL_PUBLIC_URL` como fallback para `DATABASE_URL` interno
+- [x] Retry com delay na conexão do migrate (aguardar rede interna do Railway)
+- [x] Corrigir `import.meta.dirname` → `process.cwd`/`fileURLToPath` (compatibilidade de build)
+- [x] Corrigir cookie de sessão (secure em produção) e tornar `appId` opcional no JWT
+- [x] Bloquear acesso de usuários pendentes de aprovação (tela de espera)
+- [x] Corrigir erro de extensão do browser que quebrava o DOM do React
+
+---
+
+## 🔒 Segurança — Pendências
+- [ ] **Criptografar senhas e observações do módulo de Acessos** (`acessos_empresas.senha`, `acessos_empresas.observacao`). Hoje ficam em texto puro no MySQL; se o banco for comprometido, todas as senhas de portais ficam expostas. Proposta: AES-256 com chave via variável `ENCRYPTION_KEY` no Railway.
