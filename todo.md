@@ -300,6 +300,15 @@ Série de correções para colocar e manter a aplicação no ar em `accounting-d
 - [x] Bloquear acesso de usuários pendentes de aprovação (tela de espera)
 - [x] Corrigir erro de extensão do browser que quebrava o DOM do React
 
+## Fase 32: Auditoria de UI (impeccable/ui-ux-pro-max) e Portal do Cliente como PWA (CONCLUÍDA)
+- [x] Auditoria técnica do frontend (detector automático + revisão manual): a11y, performance, responsividade, theming
+- [x] `aria-label` nos botões de ação icon-only (Documentos, Acessos, Serviços Prestados, Área do Cliente Admin) que só tinham `title`
+- [x] Aumentar touch targets de botões de ícone (36px/28px → size `icon-lg`/40px) nas telas mais usadas pelo cliente no celular
+- [x] Tokens semânticos de cor (`--status-success/warning/danger/info`, `--chart-*`) em `index.css`, com variantes light/dark, substituindo hex fixo no Dashboard
+- [x] Corrigir cores fora da paleta (heading roxo no Admin, gráfico roxo+ciano no Dashboard — tells clássicos de "UI gerada por IA")
+- [x] Portal do Cliente instalável como PWA (`vite-plugin-pwa`): manifest com ícone próprio (`client/public/icons/`), `start_url: /login`, service worker só faz cache do shell estático (nenhuma chamada de API é cacheada — dados sempre vêm da rede)
+- [x] Android/Chrome: prompt automático de "Instalar app". iOS/Safari: instalação manual via Compartilhar → Adicionar à Tela de Início (limitação da própria Apple, não dá pra automatizar sem app nativo)
+
 ---
 
 ## 🔒 Segurança — Pendências
