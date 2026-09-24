@@ -309,6 +309,17 @@ Série de correções para colocar e manter a aplicação no ar em `accounting-d
 - [x] Portal do Cliente instalável como PWA (`vite-plugin-pwa`): manifest com ícone próprio (`client/public/icons/`), `start_url: /login`, service worker só faz cache do shell estático (nenhuma chamada de API é cacheada — dados sempre vêm da rede)
 - [x] Android/Chrome: prompt automático de "Instalar app". iOS/Safari: instalação manual via Compartilhar → Adicionar à Tela de Início (limitação da própria Apple, não dá pra automatizar sem app nativo)
 
+## Fase 33: Web Interface Guidelines (a11y, forms, URL state) (CONCLUÍDA)
+- [x] Login: labels associados aos inputs (`htmlFor`/`id`), `autocomplete`/`name`, `aria-label` no toggle mostrar/ocultar senha, remove `autoFocus` (entrada mobile-first do PWA)
+- [x] PortalCliente: `aria-label` nos botões de excluir icon-only; labels associados em todos os campos do modal de lançamento e na busca
+- [x] PortalCliente: os 2 modais customizados (Nova Pasta, Novo Lançamento) migrados pro `Dialog` acessível (Radix) já usado no resto do projeto — focus trap, fecha no Esc, `aria-modal`
+- [x] PortalCliente: aba, pasta ativa e filtro de mês refletidos na URL (querystring) — sobrevive a refresh, compartilhável
+- [x] `useFilteredData.ts`: mesma tokenização de cor do Dashboard (Fase 32), aplicada também ao caminho de dados reais (upload de planilha) que tinha ficado de fora
+- [x] `button.tsx`: `transition-all` → propriedades explícitas
+- [x] `card.tsx`: `CardTitle` agora renderiza `<h3>` real (corrige hierarquia de headings em toda página que usa Card)
+- [x] `index.html`: remove `maximum-scale=1` que desabilitava pinch-zoom
+- [x] `.claude/settings.json` criado com allowlist de comandos de leitura segura (`railway --help/logs`, `agent-browser --help/skills`) — **exclui de propósito `railway variables`** (lê segredos de produção)
+
 ---
 
 ## 🔒 Segurança — Pendências
