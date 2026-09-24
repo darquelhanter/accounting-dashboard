@@ -76,15 +76,15 @@ export const useFilteredStats = (filteredData: ReturnType<typeof useFilteredData
         vencimento10: 0,
         vencimento20: 0,
         statusRecebimento: [
-          { name: "Pago", value: 0, fill: "#10b981" },
-          { name: "Pendente", value: 0, fill: "#f59e0b" },
-          { name: "Atrasado", value: 0, fill: "#ef4444" }
+          { name: "Pago", value: 0, fill: "var(--status-success)" },
+          { name: "Pendente", value: 0, fill: "var(--status-warning)" },
+          { name: "Atrasado", value: 0, fill: "var(--status-danger)" }
         ],
         statusObrigacoes: [
-          { status: "Feito", quantidade: 0, fill: "#10b981" },
-          { status: "Pendente", quantidade: 0, fill: "#f59e0b" },
-          { status: "Em Progresso", quantidade: 0, fill: "#3b82f6" },
-          { status: "Bloqueado", quantidade: 0, fill: "#ef4444" }
+          { status: "Feito", quantidade: 0, fill: "var(--status-success)" },
+          { status: "Pendente", quantidade: 0, fill: "var(--status-warning)" },
+          { status: "Em Progresso", quantidade: 0, fill: "var(--status-info)" },
+          { status: "Bloqueado", quantidade: 0, fill: "var(--status-danger)" }
         ]
       };
     }
@@ -121,15 +121,15 @@ export const useFilteredStats = (filteredData: ReturnType<typeof useFilteredData
       vencimento10,
       vencimento20,
       statusRecebimento: [
-        { name: "Pago", value: pago, fill: "#10b981" },
-        { name: "Pendente", value: pendente, fill: "#f59e0b" },
-        { name: "Atrasado", value: atrasado, fill: "#ef4444" }
+        { name: "Pago", value: pago, fill: "var(--status-success)" },
+        { name: "Pendente", value: pendente, fill: "var(--status-warning)" },
+        { name: "Atrasado", value: atrasado, fill: "var(--status-danger)" }
       ],
       statusObrigacoes: [
-        { status: "Feito", quantidade: feito, fill: "#10b981" },
-        { status: "Pendente", quantidade: pendentOb, fill: "#f59e0b" },
-        { status: "Em Progresso", quantidade: emProgresso, fill: "#3b82f6" },
-        { status: "Bloqueado", quantidade: bloqueado, fill: "#ef4444" }
+        { status: "Feito", quantidade: feito, fill: "var(--status-success)" },
+        { status: "Pendente", quantidade: pendentOb, fill: "var(--status-warning)" },
+        { status: "Em Progresso", quantidade: emProgresso, fill: "var(--status-info)" },
+        { status: "Bloqueado", quantidade: bloqueado, fill: "var(--status-danger)" }
       ]
     };
   }, [filteredData]);

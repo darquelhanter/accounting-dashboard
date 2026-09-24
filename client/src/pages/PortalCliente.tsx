@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -76,7 +77,7 @@ function FluxoItemRow({
           {item.tipo === "entrada" ? "+" : "-"}{formatCurrency(item.valor)}
         </span>
         {onDelete && (
-          <button onClick={onDelete} className="text-gray-400 hover:text-red-500 transition-colors">
+          <button onClick={onDelete} aria-label={`Excluir ${item.descricao}`} className="text-gray-400 hover:text-red-500 transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         )}
@@ -132,6 +133,7 @@ function DocList({
             size="sm"
             onClick={() => onDelete(doc.id)}
             disabled={deletingId === doc.id}
+            aria-label={`Excluir ${doc.nome}`}
             className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
           >
             {deletingId === doc.id ? (
@@ -146,12 +148,17 @@ function DocList({
   );
 }
 
+function readUrlParam(name: string): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get(name);
+}
+
 export default function PortalCliente() {
-  const [tab, setTab] = useState<Tab>("documentos");
+  const [tab, setTab] = useState<Tab>(() => (readUrlParam("tab") as Tab) || "documentos");
 
   // Documentos state
   const [search, setSearch] = useState("");
-  const [pastaAtiva, setPastaAtiva] = useState<string | null>(null);
+  const [pastaAtiva, setPastaAtiva] = useState<string | null>(() => readUrlParam("pasta"));
   const [pastasVazias, setPastasVazias] = useState<string[]>([]);
   const [novaPastaNome, setNovaPastaNome] = useState("");
   const [showNovaPasta, setShowNovaPasta] = useState(false);
@@ -173,8 +180,17 @@ export default function PortalCliente() {
   const [lancAno, setLancAno] = useState(() => new Date().getFullYear());
 
   // Filtro de mês no fluxo de caixa (null = Todos)
-  const [filtroSortKey, setFiltroSortKey] = useState<string | null>(null);
+  const [filtroSortKey, setFiltroSortKey] = useState<string | null>(() => readUrlParam("mes"));
 
+  // Reflete aba, pasta ativa e filtro de mês na URL (deep-link/compartilhável, sobrevive a refresh)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (tab !== "documentos") params.set("tab", tab); else params.delete("tab");
+    if (pastaAtiva) params.set("pasta", pastaAtiva); else params.delete("pasta");
+    if (filtroSortKey) params.set("mes", filtroSortKey); else params.delete("mes");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, [tab, pastaAtiva, filtroSortKey]);
 
   // Queries e mutations
   const utils = trpc.useUtils();
@@ -465,7 +481,7 @@ export default function PortalCliente() {
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                {uploadingFile ? "Enviando..." : "Enviar Arquivo"}
+                {uploadingFile ? "Enviando…" : "Enviar Arquivo"}
               </Button>
               <input
                 ref={fileInputRef}
@@ -477,36 +493,33 @@ export default function PortalCliente() {
           </div>
 
           {/* Modal Nova Pasta */}
-          {showNovaPasta && (
-            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-              <Card className="w-full max-w-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Nova Pasta</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Input
-                    placeholder="Nome da pasta"
-                    value={novaPastaNome}
-                    onChange={e => setNovaPastaNome(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && confirmarNovaPasta()}
-                    autoFocus
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setShowNovaPasta(false); setNovaPastaNome(""); }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button size="sm" onClick={confirmarNovaPasta} className="bg-emerald-600 hover:bg-emerald-700">
-                      Criar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          <Dialog open={showNovaPasta} onOpenChange={(open) => { setShowNovaPasta(open); if (!open) setNovaPastaNome(""); }}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Nova Pasta</DialogTitle>
+              </DialogHeader>
+              <Input
+                aria-label="Nome da pasta"
+                placeholder="Nome da pasta"
+                value={novaPastaNome}
+                onChange={e => setNovaPastaNome(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && confirmarNovaPasta()}
+                autoFocus
+              />
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setShowNovaPasta(false); setNovaPastaNome(""); }}
+                >
+                  Cancelar
+                </Button>
+                <Button size="sm" onClick={confirmarNovaPasta} className="bg-emerald-600 hover:bg-emerald-700">
+                  Criar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Navegação de pasta */}
           {pastaAtiva && (
@@ -559,7 +572,8 @@ export default function PortalCliente() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
-                    placeholder="Buscar arquivos..."
+                    aria-label="Buscar arquivos"
+                    placeholder="Buscar arquivos…"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="pl-9"
@@ -665,15 +679,20 @@ export default function PortalCliente() {
           </div>
 
           {/* Modal novo lançamento */}
-          {showLancamento && (
-            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-              <Card className="w-full max-w-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">
-                    {lancTipo === "entrada" ? "Nova Entrada" : "Nova Saída"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
+          <Dialog
+            open={showLancamento}
+            onOpenChange={(open) => {
+              setShowLancamento(open);
+              if (!open) { setLancDescricao(""); setLancCategoria(""); setLancValor(""); }
+            }}
+          >
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>
+                  {lancTipo === "entrada" ? "Nova Entrada" : "Nova Saída"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
                   {/* Tipo */}
                   <div className="flex gap-2">
                     <button
@@ -699,26 +718,29 @@ export default function PortalCliente() {
                   </div>
                   {/* Descrição */}
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Descrição</label>
+                    <label htmlFor="lanc-descricao" className="text-xs font-medium text-gray-600 mb-1 block">Descrição</label>
                     <Input
-                      placeholder="Ex: Venda de produto, Aluguel..."
+                      id="lanc-descricao"
+                      placeholder="Ex: Venda de produto, Aluguel…"
                       value={lancDescricao}
                       onChange={e => setLancDescricao(e.target.value)}
                     />
                   </div>
                   {/* Categoria */}
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Categoria <span className="text-gray-400">(opcional)</span></label>
+                    <label htmlFor="lanc-categoria" className="text-xs font-medium text-gray-600 mb-1 block">Categoria <span className="text-gray-400">(opcional)</span></label>
                     <Input
-                      placeholder="Ex: Salários, Impostos, Receitas..."
+                      id="lanc-categoria"
+                      placeholder="Ex: Salários, Impostos, Receitas…"
                       value={lancCategoria}
                       onChange={e => setLancCategoria(e.target.value)}
                     />
                   </div>
                   {/* Valor */}
                   <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Valor (R$)</label>
+                    <label htmlFor="lanc-valor" className="text-xs font-medium text-gray-600 mb-1 block">Valor (R$)</label>
                     <Input
+                      id="lanc-valor"
                       placeholder="0,00"
                       value={lancValor}
                       onChange={e => setLancValor(e.target.value)}
@@ -728,11 +750,12 @@ export default function PortalCliente() {
                   {/* Mês e Ano */}
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <label className="text-xs font-medium text-gray-600 mb-1 block">Mês</label>
+                      <label htmlFor="lanc-mes" className="text-xs font-medium text-gray-600 mb-1 block">Mês</label>
                       <select
+                        id="lanc-mes"
                         value={lancMes}
                         onChange={e => setLancMes(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       >
                         {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map(m => (
                           <option key={m} value={m}>{m}</option>
@@ -740,8 +763,9 @@ export default function PortalCliente() {
                       </select>
                     </div>
                     <div className="w-24">
-                      <label className="text-xs font-medium text-gray-600 mb-1 block">Ano</label>
+                      <label htmlFor="lanc-ano" className="text-xs font-medium text-gray-600 mb-1 block">Ano</label>
                       <Input
+                        id="lanc-ano"
                         type="number"
                         value={lancAno}
                         onChange={e => setLancAno(Number(e.target.value))}
@@ -750,28 +774,26 @@ export default function PortalCliente() {
                       />
                     </div>
                   </div>
-                  {/* Botões */}
-                  <div className="flex gap-2 justify-end pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setShowLancamento(false); setLancDescricao(""); setLancCategoria(""); setLancValor(""); }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={salvarLancamento}
-                      disabled={criarLancamentoMutation.isPending}
-                      className={lancTipo === "entrada" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-500 hover:bg-red-600"}
-                    >
-                      {criarLancamentoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setShowLancamento(false); setLancDescricao(""); setLancCategoria(""); setLancValor(""); }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={salvarLancamento}
+                  disabled={criarLancamentoMutation.isPending}
+                  className={lancTipo === "entrada" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-500 hover:bg-red-600"}
+                >
+                  {criarLancamentoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {isLoadingFluxo ? (
             <div className="flex items-center justify-center py-20">
